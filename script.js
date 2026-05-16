@@ -1,1418 +1,2146 @@
-/* ═══════════════════════════════════════════════════════
-   AKSESS — Premium Aksessuarlar · script.js
-   Supabase + Telegram WebApp + Full App Logic
-═══════════════════════════════════════════════════════ */
+// ============================================================
+// AKSESS v3 — Premium Phone Accessories Store
+// Telegram Mini App Script
+// ============================================================
 
-// ── Config ──────────────────────────────────────────────
+// ── Configuration ────────────────────────────────────────────
 const SUPABASE_URL = "https://dzzgqhlyptppyulkyquj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_y7BTNA-BHKHEQ_QOEdnBfg_bPoEZ6Ry";
-const ADMIN_ID     = 8544023815;
+const ADMIN_ID = 8544023815;
+const CART_KEY = "aksess_cart";
+const FAVS_KEY = "aksess_favs";
 
-// ── Globals ─────────────────────────────────────────────
-let sb, tg, user = {}, cart = [], favorites = [], allProducts = [],
-    allCategories = [], allBanners = [], heroInterval,
-    currentPage = "home", adminOrderFilter = "all",
-    productFormImgs = [], editingProductId = null,
-    editingCategoryId = null, editingBannerId = null;
+// ── Global State ─────────────────────────────────────────────
+let db = null;
+let storage = null;
+let tg = null;
+let user = {};
+let categories = [];
+let banners = [];
+let products = [];
+let cart = [];
+let favs = [];
+let currentProduct = null;
+let heroIndex = 0;
+let heroInterval = null;
+let heroTouchStartX = 0;
+let galleryTouchStartX = 0;
+let galleryIndex = 0;
+let isAdmin = false;
+let currentCategoryFilter = null;
+let searchDebounce = null;
+let productImgFiles = [];
+let bannerImgFile = null;
 
-// ── Init ────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
-  tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    tg.setHeaderColor("#060612");
-    tg.setBackgroundColor("#060612");
+// ── Supabase & Telegram Setup ────────────────────────────────
+function initSupabase() {
+  db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  storage = db.storage;
+}
+
+function initTelegram() {
+  tg = window.Telegram && window.Telegram.WebApp;
+  if (!tg) {
+    // Fallback for development
+    tg = {
+      ready: () => {},
+      expand: () => {},
+      close: () => {},
+      MainButton: { show: () => {}, hide: () => {}, setText: () => {}, onClick: () => {} },
+      BackButton: { show: () => {}, hide: () => {}, onClick: () => {} },
+      HapticFeedback: { notificationOccurred: () => {}, impactOccurred: () => {}, selectionChanged: () => {} },
+      sendData: () => {},
+      openTelegramLink: () => {},
+      openLink: () => {},
+      showPopup: () => {},
+      setHeaderColor: () => {},
+      setBackgroundColor: () => {},
+      themeParams: {},
+      initDataUnsafe: { user: { id: 1, first_name: "Dev", last_name: "User", username: "devuser" } },
+      colorScheme: "light",
+      viewportHeight: 600,
+      viewportStableHeight: 600,
+    };
   }
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor("#ffffff");
+  tg.setBackgroundColor("#f5f5f7");
 
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const tgUser = tg.initDataUnsafe && tg.initDataUnsafe.user;
+  user = {
+    id: (tgUser && tgUser.id) || 0,
+    first_name: (tgUser && tgUser.first_name) || "Guest",
+    last_name: (tgUser && tgUser.last_name) || "",
+    username: (tgUser && tgUser.username) || "",
+  };
+  isAdmin = user.id === ADMIN_ID;
 
-  loadUserFromTelegram();
-  loadCart();
-  loadFavorites();
+  // Register or update user
+  if (user.id) registerUser();
+}
 
-  // Check if admin launched via ?admin=1
-  const params = new URLSearchParams(location.search);
-  if (params.get("admin") === "1" && isAdmin()) {
-    document.getElementById("admin-menu-row").style.display = "flex";
-  }
-
-  await Promise.all([fetchCategories(), fetchBanners(), fetchProducts()]);
-
-  hideLoader();
-  setupRealtime();
-  setupHero();
-  renderHomeSections();
-  renderProfile();
-});
-
-// ── Supabase SQL helper ─────────────────────────────────
-const query = async (table, opts = {}) => {
-  let q = sb.from(table).select(opts.select || "*");
-  if (opts.eq)    Object.entries(opts.eq).forEach(([k,v]) => q = q.eq(k,v));
-  if (opts.ilike) q = q.ilike(opts.ilike[0], `%${opts.ilike[1]}%`);
-  if (opts.in)    q = q.in(opts.in[0], opts.in[1]);
-  if (opts.order) q = q.order(opts.order, { ascending: opts.asc ?? false });
-  if (opts.limit) q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data || [];
-};
-
-// ── User / Auth ─────────────────────────────────────────
-function loadUserFromTelegram() {
-  const u = tg?.initDataUnsafe?.user;
-  if (u) {
-    user = { id: u.id, name: u.first_name + (u.last_name ? " " + u.last_name : ""),
-             username: u.username || "", photo: u.photo_url || "" };
-  } else {
-    // Dev fallback
-    user = { id: 0, name: "Demo Foydalanuvchi", username: "demo", photo: "" };
-  }
-
-  // Register / upsert user in Supabase
-  sb.from("users").upsert({
-    telegram_id: user.id, first_name: user.name.split(" ")[0],
-    last_name: user.name.split(" ").slice(1).join(" "),
-    username: user.username, last_seen: new Date().toISOString()
-  }, { onConflict: "telegram_id" }).then();
-
-  if (isAdmin()) {
-    document.getElementById("admin-menu-row").style.display = "flex";
+async function registerUser() {
+  try {
+    const { data: existing } = await db
+      .from("users")
+      .select("id")
+      .eq("telegram_id", user.id)
+      .single();
+    if (existing) {
+      await db
+        .from("users")
+        .update({
+          first_name: user.first_name,
+          last_name: user.last_name,
+          username: user.username,
+          last_seen: new Date().toISOString(),
+        })
+        .eq("telegram_id", user.id);
+    } else {
+      await db.from("users").insert({
+        telegram_id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        username: user.username,
+        last_seen: new Date().toISOString(),
+      });
+    }
+  } catch (e) {
+    console.warn("Register user error:", e);
   }
 }
 
-function isAdmin() { return user.id === ADMIN_ID || user.id === 0; } // 0=dev
-
-// ── Loader ──────────────────────────────────────────────
-function hideLoader() {
-  setTimeout(() => {
-    document.getElementById("loader").classList.add("hidden");
-  }, 600);
-}
-
-// ── Fetch Data ──────────────────────────────────────────
+// ── Data Fetching ────────────────────────────────────────────
 async function fetchCategories() {
   try {
-    allCategories = await query("categories", { order: "created_at", asc: true });
-    if (!allCategories.length) allCategories = demoCategories();
-  } catch { allCategories = demoCategories(); }
+    const { data, error } = await db.from("categories").select("*").order("name");
+    if (error) throw error;
+    categories = data && data.length ? data : demoCategories();
+  } catch (e) {
+    console.warn("Fetch categories error:", e);
+    categories = demoCategories();
+  }
+  return categories;
 }
 
 async function fetchBanners() {
   try {
-    allBanners = await query("banners", { eq: { is_active: true }, order: "sort_order", asc: true });
-    if (!allBanners.length) allBanners = demoBanners();
-  } catch { allBanners = demoBanners(); }
+    const { data, error } = await db
+      .from("banners")
+      .select("*")
+      .eq("is_active", true)
+      .order("sort_order");
+    if (error) throw error;
+    banners = data && data.length ? data : demoBanners();
+  } catch (e) {
+    console.warn("Fetch banners error:", e);
+    banners = demoBanners();
+  }
+  return banners;
 }
 
 async function fetchProducts() {
   try {
-    allProducts = await query("products", { order: "created_at" });
-    if (!allProducts.length) allProducts = demoProducts();
-  } catch { allProducts = demoProducts(); }
+    const { data, error } = await db.from("products").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    products = data && data.length ? data : demoProducts();
+  } catch (e) {
+    console.warn("Fetch products error:", e);
+    products = demoProducts();
+  }
+  return products;
 }
 
-// ── Realtime ────────────────────────────────────────────
 function setupRealtime() {
-  sb.channel("public:products")
-    .on("postgres_changes", { event: "*", schema: "public", table: "products" }, payload => {
-      if (payload.eventType === "INSERT") allProducts.unshift(payload.new);
-      else if (payload.eventType === "UPDATE") {
-        const i = allProducts.findIndex(p => p.id === payload.new.id);
-        if (i > -1) allProducts[i] = payload.new;
-      } else if (payload.eventType === "DELETE") {
-        allProducts = allProducts.filter(p => p.id !== payload.old.id);
-      }
-      renderHomeSections();
-    }).subscribe();
+  try {
+    db.channel("aksess-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "products" }, () => fetchProducts().then(renderHomeSections))
+      .on("postgres_changes", { event: "*", schema: "public", table: "categories" }, () => fetchCategories().then(renderCatPills))
+      .on("postgres_changes", { event: "*", schema: "public", table: "banners" }, () => fetchBanners().then(setupHero))
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        if (document.getElementById("page-orders").classList.contains("active")) renderOrdersPage();
+        if (isAdmin && document.getElementById("page-admin").classList.contains("active")) loadAdminData();
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn("Realtime setup error:", e);
+  }
 }
 
-// ── Hero Slider ─────────────────────────────────────────
-function setupHero() {
-  const track = document.getElementById("hero-track");
-  const dots  = document.getElementById("hero-dots");
-  if (!track) return;
-  track.innerHTML = ""; dots.innerHTML = "";
+// ── Navigation ───────────────────────────────────────────────
+const pageHistory = [];
 
-  allBanners.forEach((b, i) => {
-    const slide = document.createElement("div");
-    slide.className = "hero-slide";
-    slide.innerHTML = b.image_url
-      ? `<img src="${b.image_url}" alt="${b.title||''}" loading="lazy">
-         <div class="hero-slide-grad"></div>
-         <div class="hero-slide-content">
-           <div class="hero-slide-title">${b.title||""}</div>
-           <div class="hero-slide-sub">${b.subtitle||""}</div>
-         </div>`
-      : `<div class="hero-slide-fallback" style="background:${b.color||"linear-gradient(135deg,#00c6ff22,#7c3aed22)"}">
-           <div style="text-align:center;padding:24px">
-             <div style="font-size:48px;margin-bottom:12px">${b.icon||"📱"}</div>
-             <div class="hero-slide-title">${b.title||""}</div>
-             <div class="hero-slide-sub" style="margin-top:6px">${b.subtitle||""}</div>
-           </div>
-         </div>`;
-    track.appendChild(slide);
-
-    const dot = document.createElement("div");
-    dot.className = "hero-dot" + (i === 0 ? " active" : "");
-    dots.appendChild(dot);
+function navigateTo(pageId) {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+  document.querySelectorAll(".page").forEach((p) => p.classList.remove("active"));
+  const page = document.getElementById(pageId);
+  if (page) {
+    page.classList.add("active");
+    page.scrollTop = 0;
+  }
+  // Update bottom nav active state
+  document.querySelectorAll(".nav-item").forEach((n) => {
+    n.classList.toggle("active", n.dataset.page === pageId);
   });
-
-  let idx = 0;
-  clearInterval(heroInterval);
-  heroInterval = setInterval(() => {
-    idx = (idx + 1) % allBanners.length;
-    setHeroSlide(idx);
-  }, 3800);
-
-  // Swipe on hero
-  let startX = 0;
-  track.addEventListener("touchstart", e => startX = e.touches[0].clientX, { passive: true });
-  track.addEventListener("touchend", e => {
-    const dx = e.changedTouches[0].clientX - startX;
-    if (Math.abs(dx) > 40) {
-      if (dx < 0) idx = (idx + 1) % allBanners.length;
-      else idx = (idx - 1 + allBanners.length) % allBanners.length;
-      setHeroSlide(idx);
-      clearInterval(heroInterval);
+  // Show/hide back button
+  if (tg && tg.BackButton) {
+    if (pageId !== "page-home" && pageId !== "page-admin") {
+      tg.BackButton.show();
+    } else {
+      tg.BackButton.hide();
     }
-  });
-}
-
-function setHeroSlide(idx) {
-  document.getElementById("hero-track").style.transform = `translateX(-${idx * 100}%)`;
-  document.querySelectorAll(".hero-dot").forEach((d, i) => d.classList.toggle("active", i === idx));
-}
-
-// ── Home Sections ───────────────────────────────────────
-function renderHomeSections() {
-  renderCatPills("home-cats", allCategories);
-  renderProductList("trending-list",   allProducts.filter(p => p.is_featured),   true);
-  renderProductList("new-list",        allProducts.filter(p => p.is_new),         true);
-  renderProductList("bestseller-list", allProducts.filter(p => p.is_bestseller),  true);
-  renderProductGrid("premium-list",    allProducts.filter(p => p.is_premium));
-}
-
-function renderCatPills(containerId, cats) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = cats.map(c =>
-    `<div class="cat-pill" onclick="filterByCategory('${c.id}','${c.name}')">
-       <span class="cat-pill-icon">${c.icon||"📦"}</span>
-       <span>${c.name}</span>
-     </div>`
-  ).join("") || `<div style="color:var(--text2);font-size:13px;padding:8px">Kategoriya yo'q</div>`;
-}
-
-function renderProductList(containerId, prods, horizontal = false) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  if (!prods.length) { el.innerHTML = ""; return; }
-  el.innerHTML = prods.slice(0, 12).map(p => productCardHTML(p, horizontal)).join("");
-}
-
-function renderProductGrid(containerId, prods) {
-  const el = document.getElementById(containerId);
-  if (!el) return;
-  el.innerHTML = prods.slice(0, 6).map(p => productCardHTML(p, false)).join("");
-}
-
-function productCardHTML(p, horizontal = false) {
-  const inFav = favorites.includes(p.id);
-  const inCart = cart.some(c => c.id === p.id);
-  const imgs   = p.images || (p.image_url ? [p.image_url] : []);
-  const img    = imgs[0] || "";
-  const hasDiscount = p.old_price && p.old_price > p.price;
-  const discPct = hasDiscount ? Math.round((1 - p.price / p.old_price) * 100) : 0;
-
-  return `<div class="pcard${horizontal ? "" : ""}" onclick="openProduct('${p.id}')">
-    <div class="pcard-img">
-      ${img ? `<img src="${img}" alt="${p.name}" loading="lazy">` : `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:40px">📱</div>`}
-      <div class="pcard-badges">
-        ${hasDiscount ? `<span class="badge badge-discount">-${discPct}%</span>` : ""}
-        ${p.is_new ? `<span class="badge badge-new">Yangi</span>` : ""}
-        ${p.stock === 0 ? `<span class="badge badge-out">Tugadi</span>` : ""}
-      </div>
-      <button class="fav-btn ${inFav ? "active" : ""}" onclick="toggleFav(event,'${p.id}')">
-        <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      </button>
-    </div>
-    <div class="pcard-info">
-      <div class="pcard-name">${p.name}</div>
-      <div class="pcard-prices">
-        <span class="pcard-price">${fmtPrice(p.price)}</span>
-        ${hasDiscount ? `<span class="pcard-old">${fmtPrice(p.old_price)}</span>` : ""}
-      </div>
-      <div class="pcard-footer">
-        <span class="stock-dot ${p.stock === 0 ? "out" : ""}">${p.stock === 0 ? "Tugadi" : "Bor"}</span>
-        <button class="add-cart-btn" ${p.stock === 0 ? "disabled" : ""} onclick="addToCart(event,'${p.id}')">
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── Navigation ──────────────────────────────────────────
-function navigateTo(page) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-  document.querySelectorAll(".nav-item").forEach(n => {
-    n.classList.toggle("active", n.dataset.page === page);
-  });
-
-  const pg = document.getElementById("page-" + page);
-  if (!pg) return;
-  pg.classList.add("active");
-  currentPage = page;
-  pg.scrollTop = 0;
-
-  const back = document.getElementById("btn-back");
-  const topCenter = document.getElementById("topbar-center");
-  const noNav = ["product","admin"];
-  back.style.opacity = noNav.includes(page) ? "1" : "0";
-  back.style.pointerEvents = noNav.includes(page) ? "auto" : "none";
-
-  // Page titles
-  const titles = { home:"", categories:"Kategoriyalar", search:"Qidiruv",
-                   orders:"Buyurtmalarim", profile:"Profil", admin:"Admin Panel" };
-  topCenter.innerHTML = page === "home"
-    ? `<span class="brand">AKSESS</span>`
-    : `<span style="font-family:'Syne',sans-serif;font-weight:700;font-size:16px">${titles[page]||""}</span>`;
-
-  if (page === "categories") renderCategoriesPage();
-  if (page === "orders")     renderOrdersPage();
-  if (page === "profile")    renderProfile();
-  if (page === "admin" && isAdmin()) loadAdminData();
+  }
 }
 
 function goBack() {
-  navigateTo(currentPage === "product" ? (history.state?.from || "home") : "home");
-}
-
-// ── Categories Page ─────────────────────────────────────
-function renderCategoriesPage() {
-  const grid = document.getElementById("cats-grid");
-  const sec  = document.getElementById("cat-products-section");
-  sec.style.display = "none";
-  grid.style.display = "grid";
-
-  grid.innerHTML = allCategories.map(c => {
-    const cnt = allProducts.filter(p => p.category_id === c.id).length;
-    return `<div class="cat-card" onclick="showCategoryProducts('${c.id}','${c.name}')">
-      <div class="cat-card-icon">${c.icon||"📦"}</div>
-      <div class="cat-card-name">${c.name}</div>
-      <div class="cat-card-count">${cnt} mahsulot</div>
-    </div>`;
-  }).join("") || `<div style="grid-column:1/-1;text-align:center;color:var(--text2);padding:40px">
-    Kategoriya yo'q
-  </div>`;
-}
-
-function showCategoryProducts(catId, catName) {
-  const prods = allProducts.filter(p => p.category_id == catId);
-  document.getElementById("cats-grid").style.display = "none";
-  const sec = document.getElementById("cat-products-section");
-  sec.style.display = "block";
-  document.getElementById("cat-products-title").textContent = catName;
-  const grid = document.getElementById("cat-products");
-  grid.innerHTML = prods.length
-    ? prods.map(p => productCardHTML(p, false)).join("")
-    : `<div class="empty-state inline" style="grid-column:1/-1"><div class="es-icon">📦</div><p>Mahsulot yo'q</p></div>`;
-}
-
-function clearCategoryFilter() { renderCategoriesPage(); }
-
-function filterByCategory(catId, catName) {
-  navigateTo("categories");
-  setTimeout(() => showCategoryProducts(catId, catName), 50);
-}
-
-function showAllFiltered(type) {
-  navigateTo("search");
-  setTimeout(() => {
-    let prods;
-    if (type === "trending")   prods = allProducts.filter(p => p.is_featured);
-    else if (type === "new")   prods = allProducts.filter(p => p.is_new);
-    else                       prods = allProducts.filter(p => p.is_bestseller);
-    document.getElementById("search-initial").style.display = "none";
-    document.getElementById("search-results").style.display = "block";
-    document.getElementById("search-count").textContent = `${prods.length} ta mahsulot`;
-    document.getElementById("search-grid").innerHTML = prods.map(p => productCardHTML(p,false)).join("");
-  }, 50);
-}
-
-// ── Search ──────────────────────────────────────────────
-let searchDebounce;
-function onSearchInput(val) {
-  const clear = document.getElementById("search-clear");
-  clear.style.display = val ? "block" : "none";
-  clearTimeout(searchDebounce);
-  if (!val.trim()) {
-    document.getElementById("search-initial").style.display = "block";
-    document.getElementById("search-results").style.display = "none";
-    document.getElementById("search-empty").style.display = "none";
+  if (currentProduct) {
+    currentProduct = null;
+    navigateTo(pageHistory.pop() || "page-home");
     return;
   }
-  searchDebounce = setTimeout(() => doSearch(val), 250);
+  navigateTo("page-home");
 }
 
-function doSearch(q) {
-  const v = q.toLowerCase();
-  const res = allProducts.filter(p =>
-    p.name?.toLowerCase().includes(v) ||
-    p.description?.toLowerCase().includes(v) ||
-    p.phone_models?.toLowerCase().includes(v)
+function openPage(pageId) {
+  pageHistory.length = 0;
+  navigateTo(pageId);
+  // Page-specific init
+  switch (pageId) {
+    case "page-home":
+      renderHomeSections();
+      break;
+    case "page-categories":
+      renderCategoriesPage();
+      break;
+    case "page-search":
+      break;
+    case "page-orders":
+      renderOrdersPage();
+      break;
+    case "page-profile":
+      renderProfile();
+      break;
+    case "page-admin":
+      if (isAdmin) loadAdminData();
+      break;
+  }
+}
+
+// ── Hero Banner Slider ───────────────────────────────────────
+function setupHero() {
+  const track = document.getElementById("hero-track");
+  const dots = document.getElementById("hero-dots");
+  if (!track || !dots) return;
+  if (!banners.length) {
+    track.innerHTML = '<div class="hero-slide"><div class="hero-placeholder">AKSESS</div></div>';
+    dots.innerHTML = "";
+    return;
+  }
+
+  track.innerHTML = banners
+    .map(
+      (b) => `
+    <div class="hero-slide" style="background:${b.color || "#1c1c1e"}">
+      <div class="hero-content">
+        ${b.icon ? `<div class="hero-icon">${b.icon}</div>` : ""}
+        <div class="hero-title">${b.title || ""}</div>
+        <div class="hero-sub">${b.subtitle || ""}</div>
+      </div>
+      ${b.image_url ? `<img class="hero-img" src="${b.image_url}" alt="${b.title || ""}" loading="lazy" />` : ""}
+    </div>`
+    )
+    .join("");
+
+  dots.innerHTML = banners
+    .map((_, i) => `<div class="hero-dot${i === 0 ? " active" : ""}" data-i="${i}"></div>`)
+    .join("");
+
+  dots.querySelectorAll(".hero-dot").forEach((d) => {
+    d.addEventListener("click", () => slideHero(parseInt(d.dataset.i)));
+  });
+
+  heroIndex = 0;
+  slideHero(0);
+  startHeroAutoplay();
+
+  // Swipe support
+  track.addEventListener("touchstart", (e) => {
+    heroTouchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  track.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].clientX - heroTouchStartX;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) slideHero(heroIndex + 1);
+      else slideHero(heroIndex - 1);
+    }
+  }, { passive: true });
+}
+
+function slideHero(index) {
+  if (index < 0) index = banners.length - 1;
+  if (index >= banners.length) index = 0;
+  heroIndex = index;
+  const track = document.getElementById("hero-track");
+  if (track) track.style.transform = `translateX(-${index * 100}%)`;
+  document.querySelectorAll(".hero-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === index);
+  });
+}
+
+function startHeroAutoplay() {
+  clearInterval(heroInterval);
+  heroInterval = setInterval(() => slideHero(heroIndex + 1), 4000);
+}
+
+// ── Home Page Rendering ──────────────────────────────────────
+function renderHomeSections() {
+  renderCatPills();
+  renderSection("trending-list", products.filter((p) => p.is_featured));
+  renderSection("new-list", products.filter((p) => p.is_new));
+  renderSection("bestseller-list", products.filter((p) => p.is_bestseller));
+  renderSection("premium-list", products.filter((p) => p.is_premium));
+}
+
+function renderCatPills() {
+  const el = document.getElementById("home-cats");
+  if (!el) return;
+  el.innerHTML = categories
+    .map(
+      (c) => `
+    <div class="cat-pill" onclick="filterByCategory(${c.id})" style="--cat-color:${c.color || "#333"}">
+      <span class="cat-pill-icon">${c.icon || ""}</span>
+      <span class="cat-pill-name">${c.name}</span>
+    </div>`
+    )
+    .join("");
+}
+
+function renderSection(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items.length) {
+    el.innerHTML = '<div class="empty-hint">No items yet</div>';
+    return;
+  }
+  el.innerHTML = items.map((p) => productCardHTML(p)).join("");
+}
+
+function renderProductGrid(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  if (!items || !items.length) {
+    el.innerHTML = '<div class="empty-hint">No products found</div>';
+    return;
+  }
+  el.innerHTML = items.map((p) => productCardHTML(p)).join("");
+}
+
+function productCardHTML(p) {
+  const isFav = favs.includes(p.id);
+  const cat = categories.find((c) => c.id === p.category_id);
+  return `
+    <div class="product-card" onclick="openProduct(${p.id})">
+      <div class="pc-img-wrap">
+        <img class="pc-img" src="${p.image_url || (p.images && p.images[0]) || ""}" alt="${p.name}" loading="lazy" />
+        ${p.is_new ? '<span class="pc-badge badge-new">NEW</span>' : ""}
+        ${p.is_bestseller ? '<span class="pc-badge badge-best">HOT</span>' : ""}
+        ${p.is_premium ? '<span class="pc-badge badge-premium">PRO</span>' : ""}
+        <button class="pc-fav${isFav ? " active" : ""}" onclick="event.stopPropagation();toggleFav(${p.id})">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </button>
+      </div>
+      <div class="pc-info">
+        ${cat ? `<div class="pc-cat" style="color:${cat.color || "#666"}">${cat.name}</div>` : ""}
+        <div class="pc-name">${p.name}</div>
+        <div class="pc-price">
+          <span class="pc-cur">${fmtPrice(p.price)}</span>
+          ${p.old_price ? `<span class="pc-old">${fmtPrice(p.old_price)}</span>` : ""}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── Categories Page ──────────────────────────────────────────
+function renderCategoriesPage() {
+  const grid = document.getElementById("cats-grid");
+  if (!grid) return;
+  grid.innerHTML = categories
+    .map(
+      (c) => `
+    <div class="cat-card" onclick="showCategoryProducts(${c.id})" style="--cat-color:${c.color || "#333"}">
+      <div class="cat-card-icon">${c.icon || "📱"}</div>
+      <div class="cat-card-name">${c.name}</div>
+      <div class="cat-card-count">${products.filter((p) => p.category_id === c.id).length}</div>
+    </div>`
+    )
+    .join("");
+  clearCategoryFilter();
+}
+
+function showCategoryProducts(catId) {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  currentCategoryFilter = catId;
+  const cat = categories.find((c) => c.id === catId);
+  const section = document.getElementById("cat-products-section");
+  const title = document.getElementById("cat-products-title");
+  const container = document.getElementById("cat-products");
+  if (section) section.style.display = "";
+  if (title) title.textContent = cat ? cat.name : "Products";
+  const filtered = products.filter((p) => p.category_id === catId);
+  renderProductGrid("cat-products", filtered);
+}
+
+function clearCategoryFilter() {
+  currentCategoryFilter = null;
+  const section = document.getElementById("cat-products-section");
+  if (section) section.style.display = "none";
+}
+
+function filterByCategory(catId) {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  openPage("page-categories");
+  setTimeout(() => showCategoryProducts(catId), 100);
+}
+
+function showAllFiltered() {
+  const container = document.getElementById("cat-products");
+  renderProductGrid("cat-products", products);
+  const title = document.getElementById("cat-products-title");
+  if (title) title.textContent = "All Products";
+}
+
+// ── Search ───────────────────────────────────────────────────
+function onSearchInput() {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(doSearch, 300);
+}
+
+async function doSearch() {
+  const input = document.getElementById("search-input");
+  const clearBtn = document.getElementById("search-clear");
+  const initial = document.getElementById("search-initial");
+  const results = document.getElementById("search-results");
+  const countEl = document.getElementById("search-count");
+  const grid = document.getElementById("search-grid");
+  const empty = document.getElementById("search-empty");
+
+  const q = (input && input.value.trim().toLowerCase()) || "";
+  if (clearBtn) clearBtn.style.display = q ? "" : "none";
+
+  if (!q) {
+    if (initial) initial.style.display = "";
+    if (results) results.style.display = "none";
+    return;
+  }
+
+  if (initial) initial.style.display = "none";
+  if (results) results.style.display = "";
+  if (empty) empty.style.display = "none";
+
+  const matched = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      (p.description && p.description.toLowerCase().includes(q)) ||
+      (p.phone_models && p.phone_models.toLowerCase().includes(q))
   );
-  document.getElementById("search-initial").style.display = "none";
-  document.getElementById("search-empty").style.display = res.length ? "none" : "flex";
-  document.getElementById("search-results").style.display = res.length ? "block" : "none";
-  document.getElementById("search-count").textContent = `${res.length} ta natija`;
-  document.getElementById("search-grid").innerHTML = res.map(p => productCardHTML(p,false)).join("");
+
+  if (countEl) countEl.textContent = `${matched.length} result${matched.length !== 1 ? "s" : ""}`;
+
+  if (!matched.length) {
+    if (grid) grid.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+
+  renderProductGrid("search-grid", matched);
 }
 
 function clearSearch() {
-  document.getElementById("search-input").value = "";
-  onSearchInput("");
+  const input = document.getElementById("search-input");
+  if (input) input.value = "";
+  doSearch();
 }
 
-function setSearch(text) {
-  const inp = document.getElementById("search-input");
-  inp.value = text;
-  inp.dispatchEvent(new Event("input"));
+function setSearch(q) {
+  const input = document.getElementById("search-input");
+  if (input) input.value = q;
+  doSearch();
+  openPage("page-search");
 }
 
-// ── Product Detail ──────────────────────────────────────
+// ── Product Detail & Gallery ─────────────────────────────────
 function openProduct(id) {
-  const p = allProducts.find(x => x.id == id);
+  const p = products.find((x) => x.id === id);
   if (!p) return;
-  history.pushState({ from: currentPage }, "", "");
-  navigateTo("product");
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred("medium");
 
-  const imgs = p.images || (p.image_url ? [p.image_url] : []);
-  const inFav = favorites.includes(p.id);
-  const models = (p.phone_models || "").split(",").filter(Boolean);
-  const related = allProducts.filter(x => x.category_id === p.category_id && x.id !== p.id).slice(0,6);
+  // Save current page for back navigation
+  const currentPage = document.querySelector(".page.active");
+  if (currentPage) pageHistory.push(currentPage.id);
 
-  document.getElementById("product-detail-wrap").innerHTML = `
-    <!-- Gallery -->
-    <div class="pd-gallery" onclick="openGallery(${id})">
-      <div class="pd-gallery-track" id="pd-gallery-track">
-        ${imgs.length
-          ? imgs.map(img => `<div class="pd-gallery-slide"><img src="${img}" alt="${p.name}" loading="lazy"></div>`).join("")
-          : `<div class="pd-gallery-slide" style="display:flex;align-items:center;justify-content:center;background:var(--glass);min-width:100%;height:300px;font-size:72px">📱</div>`}
+  currentProduct = p;
+  const wrap = document.getElementById("product-detail-wrap");
+  if (!wrap) return;
+
+  const cat = categories.find((c) => c.id === p.category_id);
+  const imgs = p.images && p.images.length ? p.images : p.image_url ? [p.image_url] : [];
+
+  wrap.innerHTML = `
+    <div class="pd-gallery">
+      <div class="gallery-container">
+        <div class="gallery-track" id="gallery-track">
+          ${imgs.map((img) => `<div class="gallery-slide"><img src="${img}" alt="${p.name}" /></div>`).join("")}
+          ${!imgs.length ? '<div class="gallery-slide gallery-no-img">No Image</div>' : ""}
+        </div>
+        <div class="gallery-dots" id="gallery-dots">
+          ${imgs.map((_, i) => `<div class="gallery-dot${i === 0 ? " active" : ""}" data-i="${i}"></div>`).join("")}
+        </div>
       </div>
-      <div class="pd-gallery-dots">
-        ${imgs.map((_,i) => `<div class="hero-dot ${i===0?"active":""}"></div>`).join("")}
-      </div>
+      <button class="gallery-fullscreen" onclick="openGallery()">⤢</button>
     </div>
-
     <div class="pd-body">
-      <div class="pd-top">
-        <h1 class="pd-name">${p.name}</h1>
+      ${cat ? `<div class="pd-cat" style="color:${cat.color || "#666"}">${cat.name}</div>` : ""}
+      <h1 class="pd-name">${p.name}</h1>
+      <div class="pd-price-row">
+        <span class="pd-price">${fmtPrice(p.price)}</span>
+        ${p.old_price ? `<span class="pd-old-price">${fmtPrice(p.old_price)}</span>` : ""}
+        ${p.old_price ? `<span class="pd-discount">-${Math.round(((p.old_price - p.price) / p.old_price) * 100)}%</span>` : ""}
       </div>
-      <div class="pd-price-block">
-        <div class="pd-price">${fmtPrice(p.price)}</div>
-        ${p.old_price ? `<div class="pd-old-price">${fmtPrice(p.old_price)}</div>` : ""}
+      ${p.phone_models ? `<div class="pd-models">📱 Compatible: ${p.phone_models}</div>` : ""}
+      <div class="pd-desc">${p.description || ""}</div>
+      <div class="pd-stock${p.stock > 0 ? " in-stock" : " out-stock"}">
+        ${p.stock > 0 ? `✓ In stock (${p.stock})` : "✕ Out of stock"}
       </div>
-
-      ${p.description ? `
-        <div class="pd-section-title">Tavsif</div>
-        <p class="pd-desc" style="margin-bottom:16px">${p.description}</p>` : ""}
-
-      ${models.length ? `
-        <div class="pd-section-title">Mos telefon modellari</div>
-        <div class="pd-models-wrap" style="margin-bottom:16px">
-          ${models.map(m => `<span class="pd-model-tag">${m.trim()}</span>`).join("")}
-        </div>` : ""}
-
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span class="stock-dot ${p.stock === 0 ? "out" : ""}" style="font-size:13px">
-          ${p.stock === 0 ? "Mavjud emas" : `${p.stock} dona mavjud`}
-        </span>
+      <div class="pd-badges">
+        ${p.is_new ? '<span class="pd-badge badge-new">New</span>' : ""}
+        ${p.is_bestseller ? '<span class="pd-badge badge-best">Bestseller</span>' : ""}
+        ${p.is_premium ? '<span class="pd-badge badge-premium">Premium</span>' : ""}
+        ${p.is_featured ? '<span class="pd-badge badge-featured">Featured</span>' : ""}
       </div>
-
-      <!-- Sticky actions -->
       <div class="pd-actions">
-        <button class="pd-fav-btn ${inFav?"active":""}" id="pd-fav-btn" onclick="toggleFav(event,'${p.id}')">
-          <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <button class="btn-fav${favs.includes(p.id) ? " active" : ""}" onclick="toggleFav(${p.id});openProduct(${p.id})">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
         </button>
-        <button class="btn-primary" style="flex:1" ${p.stock===0?"disabled":""} onclick="addToCartAndNotify('${p.id}')">
-          ${p.stock===0 ? "❌ Mavjud emas" : "🛒 Savatga qo'shish"}
+        <button class="btn-add-cart${p.stock <= 0 ? " disabled" : ""}" onclick="${p.stock > 0 ? `addToCart(${p.id})` : ""}">
+          ${p.stock > 0 ? "Add to Cart" : "Out of Stock"}
         </button>
       </div>
-
-      ${related.length ? `
-        <div class="related-section">
-          <h3>O'xshash mahsulotlar</h3>
-          <div class="prods-scroll" style="margin:0 -16px;padding:0 16px 8px">
-            ${related.map(rp => productCardHTML(rp, true)).join("")}
-          </div>
-        </div>` : ""}
-
-      <div class="bottom-space"></div>
     </div>`;
 
   // Gallery swipe
-  if (imgs.length > 1) {
-    let gIdx = 0, startX2 = 0;
-    const gt = document.getElementById("pd-gallery-track");
-    gt.addEventListener("touchstart", e => startX2 = e.touches[0].clientX, { passive: true });
-    gt.addEventListener("touchend", e => {
-      const dx = e.changedTouches[0].clientX - startX2;
-      if (Math.abs(dx) > 40) {
-        if (dx < 0) gIdx = Math.min(gIdx + 1, imgs.length - 1);
-        else gIdx = Math.max(gIdx - 1, 0);
-        gt.style.transform = `translateX(-${gIdx * 100}%)`;
-        document.querySelectorAll(".pd-gallery-dots .hero-dot").forEach((d,i) => d.classList.toggle("active",i===gIdx));
-      }
-    });
+  galleryIndex = 0;
+  setupGallerySwipe();
+
+  navigateTo("page-product");
+}
+
+function setupGallerySwipe() {
+  const track = document.getElementById("gallery-track");
+  if (!track) return;
+  track.addEventListener("touchstart", (e) => {
+    galleryTouchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  track.addEventListener("touchend", (e) => {
+    const p = currentProduct;
+    if (!p) return;
+    const imgs = p.images && p.images.length ? p.images : [];
+    const dx = e.changedTouches[0].clientX - galleryTouchStartX;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0) slideGallery(galleryIndex + 1, imgs.length);
+      else slideGallery(galleryIndex - 1, imgs.length);
+    }
+  }, { passive: true });
+}
+
+function slideGallery(index, total) {
+  if (index < 0) index = 0;
+  if (index >= total) index = total - 1;
+  galleryIndex = index;
+  const track = document.getElementById("gallery-track");
+  if (track) track.style.transform = `translateX(-${index * 100}%)`;
+  document.querySelectorAll("#gallery-dots .gallery-dot").forEach((d, i) => {
+    d.classList.toggle("active", i === index);
+  });
+}
+
+function openGallery() {
+  if (!currentProduct) return;
+  const imgs = currentProduct.images && currentProduct.images.length ? currentProduct.images : [];
+  if (!imgs.length) return;
+  // Simple fullscreen overlay gallery
+  const overlay = document.createElement("div");
+  overlay.className = "gallery-overlay";
+  overlay.innerHTML = `
+    <div class="gallery-fs-close" onclick="this.parentElement.remove()">✕</div>
+    <div class="gallery-fs-track" style="transform:translateX(-${galleryIndex * 100}%)">
+      ${imgs.map((img) => `<div class="gallery-fs-slide"><img src="${img}" alt="" /></div>`).join("")}
+    </div>
+    <div class="gallery-fs-dots">
+      ${imgs.map((_, i) => `<div class="gallery-fs-dot${i === galleryIndex ? " active" : ""}"></div>`).join("")}
+    </div>`;
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  document.body.appendChild(overlay);
+}
+
+// ── Cart System ──────────────────────────────────────────────
+function loadCart() {
+  try {
+    cart = JSON.parse(localStorage.getItem(CART_KEY)) || [];
+  } catch {
+    cart = [];
   }
 }
 
-// ── Gallery Modal ───────────────────────────────────────
-function openGallery(productId) {
-  const p = allProducts.find(x => x.id == productId);
-  if (!p) return;
-  const imgs = p.images || (p.image_url ? [p.image_url] : []);
-  if (!imgs.length) return;
-
-  const track = document.getElementById("gallery-track");
-  const dots  = document.getElementById("gallery-dots");
-  track.innerHTML = imgs.map(img => `<div class="gallery-slide"><img src="${img}" alt=""></div>`).join("");
-  dots.innerHTML  = imgs.map((_,i) => `<div class="hero-dot ${i===0?"active":""}"></div>`).join("");
-
-  openModal("modal-gallery");
-}
-
-// ── Cart ────────────────────────────────────────────────
-function loadCart() {
-  try { cart = JSON.parse(localStorage.getItem("aksess_cart") || "[]"); } catch { cart = []; }
-  updateCartBadge();
-}
-
 function saveCart() {
-  localStorage.setItem("aksess_cart", JSON.stringify(cart));
+  localStorage.setItem(CART_KEY, JSON.stringify(cart));
   updateCartBadge();
 }
 
 function updateCartBadge() {
-  const total = cart.reduce((s, c) => s + c.qty, 0);
   const badge = document.getElementById("cart-badge");
-  badge.textContent = total;
-  badge.style.display = total > 0 ? "flex" : "none";
+  if (!badge) return;
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  badge.textContent = count;
+  badge.style.display = count > 0 ? "" : "none";
 }
 
-function addToCart(e, id) {
-  e?.stopPropagation();
-  const p = allProducts.find(x => x.id == id);
-  if (!p) return;
-  const ex = cart.find(c => c.id == id);
-  if (ex) ex.qty = Math.min(ex.qty + 1, p.stock || 99);
-  else cart.push({ id: p.id, name: p.name, price: p.price,
-    image: (p.images||[])[0] || p.image_url || "", qty: 1 });
+function addToCart(productId) {
+  const p = products.find((x) => x.id === productId);
+  if (!p || p.stock <= 0) return;
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+
+  const existing = cart.find((i) => i.id === productId);
+  if (existing) {
+    if (existing.qty < p.stock) existing.qty++;
+  } else {
+    cart.push({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      image_url: p.image_url || (p.images && p.images[0]) || "",
+      qty: 1,
+    });
+  }
   saveCart();
-  toast("✅ Savatga qo'shildi", "success");
-  tg?.HapticFeedback?.impactOccurred("light");
-}
-
-function addToCartAndNotify(id) {
-  addToCart(null, id);
+  toast("Added to cart");
 }
 
 function openCart() {
   renderCartModal();
-  openModal("modal-cart");
+  openModal("cart-modal");
 }
 
 function renderCartModal() {
-  const list  = document.getElementById("cart-list");
-  const foot  = document.getElementById("cart-footer");
+  const list = document.getElementById("cart-list");
+  const footer = document.getElementById("cart-footer");
   const empty = document.getElementById("cart-empty");
+  const totalEl = document.getElementById("cart-total");
 
   if (!cart.length) {
-    list.innerHTML = "";
-    foot.style.display = "none";
-    empty.style.display = "flex";
+    if (list) list.innerHTML = "";
+    if (footer) footer.style.display = "none";
+    if (empty) empty.style.display = "";
     return;
   }
-  empty.style.display = "none";
-  foot.style.display = "block";
-  list.innerHTML = cart.map(item => `
-    <div class="cart-item">
-      ${item.image ? `<img class="cart-item-img" src="${item.image}" alt="">` : `<div class="cart-item-img" style="display:flex;align-items:center;justify-content:center;font-size:24px">📱</div>`}
-      <div class="cart-item-info">
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-price">${fmtPrice(item.price * item.qty)}</div>
-        <div class="cart-qty-row">
-          <button class="qty-btn" onclick="changeQty('${item.id}',-1)">−</button>
-          <span class="qty-num">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty('${item.id}',1)">+</button>
-          <button class="cart-del" onclick="removeFromCart('${item.id}')">O'chirish</button>
+
+  if (empty) empty.style.display = "none";
+  if (footer) footer.style.display = "";
+
+  if (list) {
+    list.innerHTML = cart
+      .map(
+        (item) => `
+      <div class="cart-item">
+        <img class="ci-img" src="${item.image_url}" alt="${item.name}" />
+        <div class="ci-info">
+          <div class="ci-name">${item.name}</div>
+          <div class="ci-price">${fmtPrice(item.price)}</div>
         </div>
-      </div>
-    </div>`).join("");
+        <div class="ci-qty">
+          <button class="ci-btn" onclick="changeQty(${item.id},-1)">−</button>
+          <span>${item.qty}</span>
+          <button class="ci-btn" onclick="changeQty(${item.id},1)">+</button>
+        </div>
+        <button class="ci-remove" onclick="removeFromCart(${item.id})">✕</button>
+      </div>`
+      )
+      .join("");
+  }
 
-  const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
-  document.getElementById("cart-total").textContent = fmtPrice(total);
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  if (totalEl) totalEl.textContent = fmtPrice(total);
 }
 
-function changeQty(id, delta) {
-  const item = cart.find(c => c.id == id);
+function changeQty(productId, delta) {
+  const item = cart.find((i) => i.id === productId);
   if (!item) return;
-  item.qty = Math.max(1, item.qty + delta);
+  const p = products.find((x) => x.id === productId);
+  item.qty += delta;
+  if (item.qty <= 0) {
+    cart = cart.filter((i) => i.id !== productId);
+  } else if (p && item.qty > p.stock) {
+    item.qty = p.stock;
+    toast("Maximum stock reached");
+  }
   saveCart();
   renderCartModal();
 }
 
-function removeFromCart(id) {
-  cart = cart.filter(c => c.id != id);
+function removeFromCart(productId) {
+  cart = cart.filter((i) => i.id !== productId);
   saveCart();
   renderCartModal();
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
 }
 
-// ── Order ───────────────────────────────────────────────
+// ── Order System ─────────────────────────────────────────────
 function openOrderModal() {
-  closeModal("modal-cart");
-  const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
-  document.getElementById("o-total").textContent = fmtPrice(total);
-  document.getElementById("o-summary").innerHTML = cart.map(c =>
-    `<div class="order-summary-item"><span>${c.name} × ${c.qty}</span><span>${fmtPrice(c.price*c.qty)}</span></div>`
-  ).join("");
-  openModal("modal-order");
+  if (!cart.length) {
+    toast("Cart is empty");
+    return;
+  }
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const totalEl = document.getElementById("o-total");
+  const summaryEl = document.getElementById("o-summary");
+  const phoneEl = document.getElementById("o-phone");
+
+  if (totalEl) totalEl.textContent = fmtPrice(total);
+  if (summaryEl) {
+    summaryEl.innerHTML = cart
+      .map((i) => `<div class="os-item"><span>${i.name} ×${i.qty}</span><span>${fmtPrice(i.price * i.qty)}</span></div>`)
+      .join("");
+  }
+  if (phoneEl && user.username) phoneEl.value = user.username;
+
+  openModal("order-modal");
 }
 
 async function placeOrder() {
-  const phone   = document.getElementById("o-phone").value.trim();
-  const address = document.getElementById("o-address").value.trim();
-  if (!phone || !address) { toast("📞 Telefon va manzilni kiriting", "error"); return; }
+  const phone = document.getElementById("o-phone")?.value.trim();
+  const address = document.getElementById("o-address")?.value.trim();
+  const payment = document.getElementById("o-payment")?.value;
+  const note = document.getElementById("o-note")?.value.trim();
 
-  const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+  if (!phone) {
+    toast("Please enter your phone number");
+    return;
+  }
+  if (!address) {
+    toast("Please enter your delivery address");
+    return;
+  }
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const items = cart.map((i) => ({
+    id: i.id,
+    name: i.name,
+    price: i.price,
+    qty: i.qty,
+  }));
+
   const orderData = {
     user_telegram_id: user.id,
-    user_name: user.name,
+    user_name: `${user.first_name}${user.last_name ? " " + user.last_name : ""}`,
     phone,
     address,
-    note: document.getElementById("o-note").value.trim(),
-    items: cart,
+    note,
+    items,
     total,
     status: "pending",
-    created_at: new Date().toISOString()
+    payment_method: payment || "cash",
   };
 
   try {
-    const { data, error } = await sb.from("orders").insert(orderData).select().single();
+    const { data, error } = await db.from("orders").insert(orderData).select().single();
     if (error) throw error;
 
-    // Notify bot via WebApp
-    if (tg?.sendData) {
-      tg.sendData(JSON.stringify({ action: "new_order", ...data }));
+    // Send data back to bot
+    if (tg && tg.sendData) {
+      tg.sendData(
+        JSON.stringify({
+          action: "new_order",
+          order_id: data.id,
+          total,
+          phone,
+          address,
+        })
+      );
     }
 
     cart = [];
     saveCart();
-    closeModal("modal-order");
-    toast("🎉 Buyurtma qabul qilindi!", "success");
-    renderOrdersPage();
+    closeModal("order-modal");
+    toast("Order placed successfully! 🎉");
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
   } catch (e) {
-    console.error(e);
-    toast("❌ Xatolik yuz berdi", "error");
+    console.error("Place order error:", e);
+    toast("Failed to place order. Please try again.");
   }
 }
 
-// ── Orders Page ─────────────────────────────────────────
-async function renderOrdersPage() {
-  const list  = document.getElementById("orders-list");
+// ── Orders Page ──────────────────────────────────────────────
+function renderOrdersPage() {
+  const list = document.getElementById("orders-list");
   const empty = document.getElementById("orders-empty");
-  list.innerHTML = "";
+  if (!list) return;
 
-  try {
-    const orders = await query("orders", {
-      eq: { user_telegram_id: user.id },
-      order: "created_at"
-    });
-    if (!orders.length) { empty.style.display = "flex"; return; }
-    empty.style.display = "none";
-    list.innerHTML = orders.map(o => {
-      const items = Array.isArray(o.items) ? o.items : [];
-      return `<div class="order-card">
-        <div class="order-card-head">
-          <span class="order-id">#${String(o.id).slice(0,8)}</span>
-          <span class="order-status status-${o.status||"pending"}">${statusLabel(o.status)}</span>
-        </div>
-        <div class="order-items-preview">${items.slice(0,2).map(i=>i.name).join(", ")}${items.length>2?" ...":""}</div>
-        <div class="order-card-foot">
-          <span class="order-total">${fmtPrice(o.total)}</span>
-          <span class="order-date">${fmtDate(o.created_at)}</span>
-        </div>
-      </div>`;
-    }).join("");
-  } catch { empty.style.display = "flex"; }
+  filterUserOrders();
 }
 
-// ── Profile ─────────────────────────────────────────────
-async function renderProfile() {
-  document.getElementById("profile-name").textContent = user.name || "—";
-  document.getElementById("profile-uname").textContent = user.username ? "@" + user.username : "";
+async function filterUserOrders() {
+  const list = document.getElementById("orders-list");
+  const empty = document.getElementById("orders-empty");
+  if (!list) return;
 
+  try {
+    const { data, error } = await db
+      .from("orders")
+      .select("*")
+      .eq("user_telegram_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    const orders = data || [];
+    if (!orders.length) {
+      list.innerHTML = "";
+      if (empty) empty.style.display = "";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+
+    list.innerHTML = orders
+      .map(
+        (o) => `
+      <div class="order-card" onclick="openOrderDetailModal(${o.id})">
+        <div class="oc-header">
+          <span class="oc-id">#${o.id}</span>
+          ${statusLabel(o.status)}
+        </div>
+        <div class="oc-date">${fmtDate(o.created_at)}</div>
+        <div class="oc-items">${o.items ? o.items.length : 0} item${(o.items && o.items.length) !== 1 ? "s" : ""}</div>
+        <div class="oc-total">${fmtPrice(o.total)}</div>
+      </div>`
+      )
+      .join("");
+  } catch (e) {
+    console.warn("Filter orders error:", e);
+    list.innerHTML = '<div class="empty-hint">Could not load orders</div>';
+  }
+}
+
+function openOrderDetailModal(orderId) {
+  // Implemented in admin section; reuse for user too
+  openOrderDetail(orderId);
+}
+
+// ── Profile & Favorites ──────────────────────────────────────
+async function renderProfile() {
   const ava = document.getElementById("profile-ava");
-  if (user.photo) ava.innerHTML = `<img src="${user.photo}" alt="">`;
+  const nameEl = document.getElementById("profile-name");
+  const unameEl = document.getElementById("profile-uname");
+  const stOrders = document.getElementById("st-orders");
+  const stFavs = document.getElementById("st-favs");
+  const stSpent = document.getElementById("st-spent");
+  const adminRow = document.getElementById("admin-menu-row");
+
+  if (ava) ava.textContent = (user.first_name || "G")[0].toUpperCase();
+  if (nameEl) nameEl.textContent = `${user.first_name}${user.last_name ? " " + user.last_name : ""}`;
+  if (unameEl) unameEl.textContent = user.username ? `@${user.username}` : "";
+  if (adminRow) adminRow.style.display = isAdmin ? "" : "none";
 
   // Stats
   try {
-    const orders = await query("orders", { eq: { user_telegram_id: user.id } });
-    document.getElementById("st-orders").textContent = orders.length;
-    const spent = orders.filter(o => o.status === "delivered").reduce((s,o) => s + o.total, 0);
-    document.getElementById("st-spent").textContent = spent >= 1000000 ? (spent/1000000).toFixed(1)+"M" : fmtShort(spent);
-  } catch {}
+    const { data: orders } = await db
+      .from("orders")
+      .select("total")
+      .eq("user_telegram_id", user.id);
+    const totalOrders = orders ? orders.length : 0;
+    const totalSpent = orders ? orders.reduce((s, o) => s + (o.total || 0), 0) : 0;
+    if (stOrders) stOrders.textContent = totalOrders;
+    if (stSpent) stSpent.textContent = fmtShort(totalSpent);
+  } catch {
+    if (stOrders) stOrders.textContent = "0";
+    if (stSpent) stSpent.textContent = "0";
+  }
+
+  if (stFavs) stFavs.textContent = favs.length;
 
   renderFavorites();
 }
 
 function renderFavorites() {
-  const favProds = allProducts.filter(p => favorites.includes(p.id));
-  document.getElementById("st-favs").textContent = favProds.length;
   const grid = document.getElementById("favs-grid");
-  grid.innerHTML = favProds.length
-    ? favProds.map(p => productCardHTML(p, false)).join("")
-    : `<div class="empty-state inline"><div class="es-icon" style="font-size:28px">💔</div><p style="font-size:13px">Sevimlilar yo'q</p></div>`;
-}
-
-// ── Favorites ───────────────────────────────────────────
-function loadFavorites() {
-  try { favorites = JSON.parse(localStorage.getItem("aksess_favs") || "[]"); } catch { favorites = []; }
-}
-
-function toggleFav(e, id) {
-  e?.stopPropagation();
-  const idx = favorites.indexOf(id);
-  if (idx > -1) { favorites.splice(idx, 1); toast("💔 Sevimlilardan o'chirildi", "info"); }
-  else { favorites.push(id); toast("❤️ Sevimlilarga qo'shildi", "success"); }
-  localStorage.setItem("aksess_favs", JSON.stringify(favorites));
-  tg?.HapticFeedback?.impactOccurred("light");
-
-  // Update all fav buttons
-  document.querySelectorAll(`.fav-btn`).forEach(btn => {
-    if (btn.getAttribute("onclick")?.includes(`'${id}'`)) {
-      btn.classList.toggle("active", favorites.includes(id));
-    }
-  });
-
-  const pdFav = document.getElementById("pd-fav-btn");
-  if (pdFav && pdFav.getAttribute("onclick")?.includes(`'${id}'`)) {
-    pdFav.classList.toggle("active", favorites.includes(id));
+  if (!grid) return;
+  const favProducts = products.filter((p) => favs.includes(p.id));
+  if (!favProducts.length) {
+    grid.innerHTML = '<div class="empty-hint">No favorites yet</div>';
+    return;
   }
-  renderFavorites();
+  grid.innerHTML = favProducts.map((p) => productCardHTML(p)).join("");
 }
 
-// ── Custom Request ──────────────────────────────────────
-let reqImgFile = null;
-function previewReqImg(inp) {
-  const f = inp.files[0];
-  if (!f) return;
-  reqImgFile = f;
+function toggleFav(productId) {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  const idx = favs.indexOf(productId);
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+  } else {
+    favs.push(productId);
+  }
+  localStorage.setItem(FAVS_KEY, JSON.stringify(favs));
+  // Re-render current view
+  renderHomeSections();
+  if (document.getElementById("page-profile").classList.contains("active")) renderFavorites();
+  if (currentProduct) openProduct(currentProduct.id);
+}
+
+// ── Custom Requests ──────────────────────────────────────────
+function previewReqImg(inputId) {
+  const input = document.getElementById(inputId || "req-img-inp");
+  const ph = document.getElementById("req-img-ph");
+  const prev = document.getElementById("req-img-prev");
+  if (!input || !input.files || !input.files[0]) return;
+
+  const file = input.files[0];
   const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById("req-img-ph").style.display = "none";
-    const prev = document.getElementById("req-img-prev");
-    prev.src = e.target.result;
-    prev.style.display = "block";
+  reader.onload = (e) => {
+    if (ph) ph.style.display = "none";
+    if (prev) {
+      prev.src = e.target.result;
+      prev.style.display = "";
+    }
   };
-  reader.readAsDataURL(f);
+  reader.readAsDataURL(file);
 }
 
 async function submitRequest() {
-  const desc    = document.getElementById("req-desc").value.trim();
-  const model   = document.getElementById("req-model").value.trim();
-  const contact = document.getElementById("req-contact").value.trim();
-  if (!desc) { toast("📝 Tavsif kiriting", "error"); return; }
+  const desc = document.getElementById("req-desc")?.value.trim();
+  const model = document.getElementById("req-model")?.value.trim();
+  const contact = document.getElementById("req-contact")?.value.trim();
+  const imgInput = document.getElementById("req-img-inp");
 
-  let image_url = "";
-  if (reqImgFile) {
-    const { data, error } = await sb.storage.from("requests")
-      .upload(`${Date.now()}_${reqImgFile.name}`, reqImgFile, { upsert: true });
-    if (!error) {
-      const { data: pd } = sb.storage.from("requests").getPublicUrl(data.path);
-      image_url = pd.publicUrl;
+  if (!desc) {
+    toast("Please describe what you need");
+    return;
+  }
+
+  let imageUrl = null;
+
+  // Upload image if provided
+  if (imgInput && imgInput.files && imgInput.files[0]) {
+    try {
+      const file = imgInput.files[0];
+      const ext = file.name.split(".").pop();
+      const path = `${user.id}_${Date.now()}.${ext}`;
+      const { data, error } = await storage.from("requests").upload(path, file);
+      if (!error && data) {
+        const { data: urlData } = storage.from("requests").getPublicUrl(data.path);
+        imageUrl = urlData.publicUrl;
+      }
+    } catch (e) {
+      console.warn("Image upload error:", e);
     }
   }
 
-  const reqData = {
-    user_telegram_id: user.id,
-    user_name: user.name,
-    description: desc,
-    phone_model: model,
-    contact,
-    image_url,
-    status: "new",
-    created_at: new Date().toISOString()
-  };
-
   try {
-    const { data, error } = await sb.from("custom_requests").insert(reqData).select().single();
+    const { error } = await db.from("custom_requests").insert({
+      user_telegram_id: user.id,
+      user_name: `${user.first_name}${user.last_name ? " " + user.last_name : ""}`,
+      description: desc,
+      phone_model: model || null,
+      contact: contact || null,
+      image_url: imageUrl,
+      status: "pending",
+    });
     if (error) throw error;
 
-    if (tg?.sendData) {
-      tg.sendData(JSON.stringify({ action: "custom_request", ...data }));
-    }
+    toast("Request submitted! We'll get back to you soon.");
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    closeModal("request-modal");
 
-    closeModal("modal-request");
-    toast("📨 So'rov yuborildi!", "success");
-    reqImgFile = null;
-    document.getElementById("req-img-prev").style.display = "none";
-    document.getElementById("req-img-ph").style.display = "flex";
-    document.getElementById("req-desc").value = "";
-    document.getElementById("req-model").value = "";
-    document.getElementById("req-contact").value = "";
+    // Clear form
+    if (document.getElementById("req-desc")) document.getElementById("req-desc").value = "";
+    if (document.getElementById("req-model")) document.getElementById("req-model").value = "";
+    if (document.getElementById("req-contact")) document.getElementById("req-contact").value = "";
+    const ph = document.getElementById("req-img-ph");
+    const prev = document.getElementById("req-img-prev");
+    if (ph) ph.style.display = "";
+    if (prev) prev.style.display = "none";
   } catch (e) {
-    console.error(e);
-    toast("❌ Xatolik yuz berdi", "error");
+    console.error("Submit request error:", e);
+    toast("Failed to submit request");
   }
 }
 
-// ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 // ADMIN PANEL
-// ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
 
-function switchTab(btn, tab) {
-  document.querySelectorAll(".atab").forEach(b => b.classList.remove("active"));
-  document.querySelectorAll(".atab-content").forEach(c => c.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("tab-" + tab).classList.add("active");
-  if (tab === "products")   renderAdminProducts();
-  if (tab === "categories") renderAdminCategories();
-  if (tab === "orders")     renderAdminOrders();
-  if (tab === "requests")   renderAdminRequests();
-  if (tab === "banners")    renderAdminBanners();
+// ── Admin Tab Switching ──────────────────────────────────────
+function switchTab(tabName) {
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+  document.querySelectorAll(".admin-tab").forEach((t) => t.classList.remove("active"));
+  document.querySelectorAll(".admin-section").forEach((s) => s.classList.remove("active"));
+
+  const tab = document.querySelector(`.admin-tab[data-tab="${tabName}"]`);
+  const section = document.getElementById(`admin-sec-${tabName}`);
+  if (tab) tab.classList.add("active");
+  if (section) section.classList.add("active");
+
+  // Load data for tab
+  switch (tabName) {
+    case "dashboard": renderAdminDashboard(); break;
+    case "products": renderAdminProducts(); break;
+    case "categories": renderAdminCategories(); break;
+    case "orders": renderAdminOrders(); break;
+    case "requests": renderAdminRequests(); break;
+    case "banners": renderAdminBanners(); break;
+    case "users": renderAdminUsers(); break;
+    case "broadcast": loadBroadcastHistory(); break;
+  }
 }
 
+// ── Admin Data Loading ───────────────────────────────────────
 async function loadAdminData() {
-  await Promise.all([fetchProducts(), fetchCategories()]);
+  await Promise.all([fetchProducts(), fetchCategories(), fetchBanners()]);
   renderAdminDashboard();
-  renderAdminProducts();
 }
 
-// Dashboard
+// ── Admin Dashboard ──────────────────────────────────────────
 async function renderAdminDashboard() {
   try {
-    const [products, orders, users, requests] = await Promise.all([
-      query("products"),
-      query("orders"),
-      query("users"),
-      query("custom_requests")
+    const [prodRes, orderRes, userRes] = await Promise.all([
+      db.from("products").select("id", { count: "exact" }),
+      db.from("orders").select("id, total, status"),
+      db.from("users").select("id", { count: "exact" }),
     ]);
-    document.getElementById("as-products").textContent = products.length;
-    document.getElementById("as-orders").textContent   = orders.length;
-    document.getElementById("as-users").textContent    = users.length;
-    const revenue = orders.filter(o => o.status === "delivered").reduce((s,o) => s + (o.total||0), 0);
-    document.getElementById("as-revenue").textContent  = fmtShort(revenue) + " so'm";
 
-    document.getElementById("a-recent-orders").innerHTML = orders.slice(0,3).map(o =>
-      `<div class="admin-row">
-        <div class="admin-row-head">
-          <span class="admin-row-name">${o.user_name||"—"}</span>
-          <span class="order-status status-${o.status||"pending"}">${statusLabel(o.status)}</span>
-        </div>
-        <div class="admin-row-sub">${fmtPrice(o.total)} · ${fmtDate(o.created_at)}</div>
-      </div>`
-    ).join("") || `<div style="color:var(--text2);font-size:13px">Hali buyurtma yo'q</div>`;
+    const totalProducts = prodRes.count || (prodRes.data && prodRes.data.length) || 0;
+    const totalOrders = orderRes.data ? orderRes.data.length : 0;
+    const totalUsers = userRes.count || (userRes.data && userRes.data.length) || 0;
+    const totalRevenue = orderRes.data ? orderRes.data.reduce((s, o) => s + (o.total || 0), 0) : 0;
+    const pendingOrders = orderRes.data ? orderRes.data.filter((o) => o.status === "pending").length : 0;
+    const deliveredOrders = orderRes.data ? orderRes.data.filter((o) => o.status === "delivered").length : 0;
 
-    document.getElementById("a-recent-requests").innerHTML = requests.slice(0,3).map(r =>
-      `<div class="admin-row">
-        <div class="admin-row-head">
-          <span class="admin-row-name">${r.user_name||"—"}</span>
-          <span class="badge badge-new" style="font-size:9px">${r.status||"new"}</span>
-        </div>
-        <div class="admin-row-sub">${r.description||""} · ${r.phone_model||""}</div>
-        ${r.image_url ? `<img src="${r.image_url}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;margin-top:8px" loading="lazy">` : ""}
-      </div>`
-    ).join("") || `<div style="color:var(--text2);font-size:13px">Hali so'rov yo'q</div>`;
-  } catch (e) { console.error(e); }
-}
-
-// ── Admin Products ──────────────────────────────────────
-function renderAdminProducts() {
-  const el = document.getElementById("a-products-list");
-  if (!el) return;
-  el.innerHTML = allProducts.length
-    ? allProducts.map(p => {
-        const img = (p.images||[])[0] || p.image_url || "";
-        const tags = [p.is_featured?"🔥":"", p.is_new?"✨":"", p.is_bestseller?"⭐":"", p.is_premium?"💎":""].filter(Boolean).join(" ");
-        return `<div class="admin-row">
-          <div class="admin-row-head">
-            ${img ? `<img class="admin-row-img" src="${img}" alt="" loading="lazy">` : ""}
-            <div style="flex:1;min-width:0">
-              <div class="admin-row-name">${p.name}</div>
-              <div class="admin-row-sub">${fmtPrice(p.price)} · Soni: ${p.stock??0} ${tags}</div>
-            </div>
-          </div>
-          <div class="admin-row-actions">
-            <button class="btn-ghost" onclick="openProductForm('${p.id}')">✏️ Tahrirlash</button>
-            <button class="btn-danger" onclick="deleteProduct('${p.id}')">🗑 O'chirish</button>
-          </div>
-        </div>`;
-      }).join("")
-    : `<div style="color:var(--text2);text-align:center;padding:24px">Mahsulot yo'q</div>`;
-}
-
-// Product form
-function openProductForm(id = null) {
-  editingProductId = id;
-  document.getElementById("pf-title").textContent = id ? "Mahsulotni tahrirlash" : "Mahsulot qo'shish";
-  document.getElementById("pf-thumbs").innerHTML = "";
-  productFormImgs = [];
-
-  if (id) {
-    const p = allProducts.find(x => x.id == id);
-    if (!p) return;
-    document.getElementById("pf-id").value       = p.id;
-    document.getElementById("pf-name").value     = p.name || "";
-    document.getElementById("pf-desc").value     = p.description || "";
-    document.getElementById("pf-price").value    = p.price || "";
-    document.getElementById("pf-old-price").value= p.old_price || "";
-    document.getElementById("pf-stock").value    = p.stock ?? 0;
-    document.getElementById("pf-models").value   = p.phone_models || "";
-    document.getElementById("pf-featured").checked  = !!p.is_featured;
-    document.getElementById("pf-new").checked       = !!p.is_new;
-    document.getElementById("pf-bestseller").checked= !!p.is_bestseller;
-    document.getElementById("pf-premium").checked   = !!p.is_premium;
-
-    // Category select
-    populateCategorySelect("pf-category", p.category_id);
-
-    // Show existing images as thumbnails
-    const imgs = p.images || (p.image_url ? [p.image_url] : []);
-    productFormImgs = imgs.map(url => ({ url, file: null }));
-    renderProductImgThumbs();
-  } else {
-    clearProductForm();
-    populateCategorySelect("pf-category", null);
+    const el = (id, val) => {
+      const e = document.getElementById(id);
+      if (e) e.textContent = val;
+    };
+    el("as-products", totalProducts);
+    el("as-orders", totalOrders);
+    el("as-users", totalUsers);
+    el("as-revenue", fmtShort(totalRevenue));
+    el("as-pending", pendingOrders);
+    el("as-delivered", deliveredOrders);
+  } catch (e) {
+    console.warn("Dashboard stats error:", e);
   }
 
-  openModal("modal-product-form");
+  // Recent orders
+  try {
+    const { data: recent } = await db
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const recentEl = document.getElementById("a-recent-orders");
+    if (recentEl) {
+      recentEl.innerHTML = (recent || [])
+        .map(
+          (o) => `
+        <div class="admin-list-item" onclick="openOrderDetail(${o.id})">
+          <span class="ali-id">#${o.id}</span>
+          <span class="ali-name">${o.user_name || "Unknown"}</span>
+          <span class="ali-total">${fmtPrice(o.total)}</span>
+          ${statusLabel(o.status)}
+        </div>`
+        )
+        .join("");
+    }
+  } catch (e) {
+    console.warn("Recent orders error:", e);
+  }
+
+  // Recent requests
+  try {
+    const { data: recentReq } = await db
+      .from("custom_requests")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(5);
+    const reqEl = document.getElementById("a-recent-requests");
+    if (reqEl) {
+      reqEl.innerHTML = (recentReq || [])
+        .map(
+          (r) => `
+        <div class="admin-list-item">
+          <span class="ali-name">${r.user_name || "Unknown"}</span>
+          <span class="ali-desc">${(r.description || "").substring(0, 50)}${(r.description || "").length > 50 ? "..." : ""}</span>
+          ${statusLabel(r.status)}
+        </div>`
+        )
+        .join("");
+    }
+  } catch (e) {
+    console.warn("Recent requests error:", e);
+  }
+}
+
+// ── Admin Products ───────────────────────────────────────────
+function renderAdminProducts() {
+  const list = document.getElementById("a-products-list");
+  if (!list) return;
+  list.innerHTML = products
+    .map(
+      (p) => `
+    <div class="admin-list-item">
+      <img class="ali-img" src="${p.image_url || (p.images && p.images[0]) || ""}" alt="" />
+      <span class="ali-name">${p.name}</span>
+      <span class="ali-price">${fmtPrice(p.price)}</span>
+      <span class="ali-stock">Stock: ${p.stock}</span>
+      <div class="ali-actions">
+        <button class="btn-sm" onclick="openProductForm(${p.id})">Edit</button>
+        <button class="btn-sm btn-danger" onclick="deleteProduct(${p.id})">Del</button>
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
+function openProductForm(id) {
+  clearProductForm();
+  if (id) {
+    const p = products.find((x) => x.id === id);
+    if (!p) return;
+    const el = (fid, val) => {
+      const e = document.getElementById(fid);
+      if (e) e.value = val != null ? val : "";
+    };
+    el("pf-id", p.id);
+    el("pf-title", p.name);
+    el("pf-name", p.name);
+    el("pf-desc", p.description);
+    el("pf-price", p.price);
+    el("pf-old-price", p.old_price);
+    el("pf-stock", p.stock);
+    el("pf-category", p.category_id);
+    el("pf-models", p.phone_models);
+    const setCheck = (fid, val) => {
+      const e = document.getElementById(fid);
+      if (e) e.checked = !!val;
+    };
+    setCheck("pf-featured", p.is_featured);
+    setCheck("pf-new", p.is_new);
+    setCheck("pf-bestseller", p.is_bestseller);
+    setCheck("pf-premium", p.is_premium);
+    // Show existing images
+    const imgs = p.images || [];
+    productImgFiles = imgs.map((url) => ({ url, isExisting: true }));
+    renderProductImgThumbs();
+  }
+  populateCategorySelect();
+  openModal("product-form-modal");
 }
 
 function clearProductForm() {
-  ["pf-id","pf-name","pf-desc","pf-price","pf-old-price","pf-stock","pf-models"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
-  ["pf-featured","pf-new","pf-bestseller","pf-premium"].forEach(id => {
-    document.getElementById(id).checked = false;
-  });
-  productFormImgs = [];
-  document.getElementById("pf-thumbs").innerHTML = "";
-}
-
-function populateCategorySelect(selectId, selected) {
-  const sel = document.getElementById(selectId);
-  sel.innerHTML = `<option value="">Tanlang...</option>` +
-    allCategories.map(c => `<option value="${c.id}" ${c.id == selected ? "selected" : ""}>${c.icon||"📦"} ${c.name}</option>`).join("");
-}
-
-function addProductImgs(inp) {
-  const files = Array.from(inp.files);
-  files.forEach(f => productFormImgs.push({ file: f, url: URL.createObjectURL(f) }));
+  productImgFiles = [];
+  const el = (fid) => {
+    const e = document.getElementById(fid);
+    if (e) {
+      if (e.type === "checkbox") e.checked = false;
+      else if (e.tagName === "SELECT") e.selectedIndex = 0;
+      else e.value = "";
+    }
+  };
+  ["pf-id", "pf-title", "pf-name", "pf-desc", "pf-price", "pf-old-price", "pf-stock", "pf-category", "pf-models"].forEach(el);
+  ["pf-featured", "pf-new", "pf-bestseller", "pf-premium"].forEach(el);
   renderProductImgThumbs();
-  inp.value = "";
+  const prog = document.getElementById("pf-upload-progress");
+  if (prog) prog.style.display = "none";
+}
+
+function populateCategorySelect() {
+  const sel = document.getElementById("pf-category");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Select category</option>' +
+    categories.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+}
+
+function addProductImgs() {
+  const input = document.getElementById("pf-imgs");
+  if (!input || !input.files) return;
+  Array.from(input.files).forEach((file) => {
+    productImgFiles.push({ file, isExisting: false });
+  });
+  renderProductImgThumbs();
 }
 
 function renderProductImgThumbs() {
-  const wrap = document.getElementById("pf-thumbs");
-  wrap.innerHTML = productFormImgs.map((img, i) => `
-    <div class="img-thumb">
-      <img src="${img.url}" alt="">
-      <button class="img-thumb-del" onclick="removeProductImg(${i})">✕</button>
-    </div>`).join("");
+  const container = document.getElementById("pf-thumbs");
+  if (!container) return;
+  container.innerHTML = productImgFiles
+    .map(
+      (img, i) => `
+    <div class="pf-thumb">
+      <img src="${img.isExisting ? img.url : URL.createObjectURL(img.file)}" alt="" />
+      <button class="pf-thumb-remove" onclick="removeProductImg(${i})">✕</button>
+    </div>`
+    )
+    .join("");
 }
 
-function removeProductImg(i) {
-  productFormImgs.splice(i, 1);
+function removeProductImg(index) {
+  productImgFiles.splice(index, 1);
   renderProductImgThumbs();
 }
 
 async function saveProduct() {
-  const name  = document.getElementById("pf-name").value.trim();
-  const price = parseFloat(document.getElementById("pf-price").value);
-  if (!name || !price) { toast("Nomi va narxni kiriting", "error"); return; }
+  const id = document.getElementById("pf-id")?.value;
+  const name = document.getElementById("pf-name")?.value.trim();
+  const desc = document.getElementById("pf-desc")?.value.trim();
+  const price = parseFloat(document.getElementById("pf-price")?.value) || 0;
+  const old_price = parseFloat(document.getElementById("pf-old-price")?.value) || null;
+  const stock = parseInt(document.getElementById("pf-stock")?.value) || 0;
+  const category_id = parseInt(document.getElementById("pf-category")?.value) || null;
+  const phone_models = document.getElementById("pf-models")?.value.trim() || null;
+  const is_featured = document.getElementById("pf-featured")?.checked || false;
+  const is_new = document.getElementById("pf-new")?.checked || false;
+  const is_bestseller = document.getElementById("pf-bestseller")?.checked || false;
+  const is_premium = document.getElementById("pf-premium")?.checked || false;
 
-  // Show progress
-  document.getElementById("pf-upload-progress").style.display = "block";
+  if (!name || !price) {
+    toast("Name and price are required");
+    return;
+  }
 
   // Upload new images
   const uploadedUrls = [];
-  let uploaded = 0;
-  for (const img of productFormImgs) {
-    if (img.file) {
-      const { data, error } = await sb.storage.from("products")
-        .upload(`${Date.now()}_${img.file.name}`, img.file, { upsert: true });
-      if (!error) {
-        const { data: pd } = sb.storage.from("products").getPublicUrl(data.path);
-        uploadedUrls.push(pd.publicUrl);
-      }
-    } else if (img.url) {
-      uploadedUrls.push(img.url);
-    }
-    uploaded++;
-    const pct = Math.round((uploaded / productFormImgs.length) * 100);
-    document.getElementById("pf-progress-bar").style.width = pct + "%";
-    document.getElementById("pf-progress-text").textContent = `Yuklanmoqda ${pct}%...`;
+  const progressEl = document.getElementById("pf-upload-progress");
+  const progressBar = document.getElementById("pf-progress-bar");
+  const progressText = document.getElementById("pf-progress-text");
+
+  const newFiles = productImgFiles.filter((f) => !f.isExisting);
+  const existingUrls = productImgFiles.filter((f) => f.isExisting).map((f) => f.url);
+
+  if (newFiles.length && progressEl) {
+    progressEl.style.display = "";
   }
 
-  const payload = {
+  for (let i = 0; i < newFiles.length; i++) {
+    try {
+      const file = newFiles[i].file;
+      const ext = file.name.split(".").pop();
+      const path = `product_${Date.now()}_${i}.${ext}`;
+      const { data, error } = await storage.from("products").upload(path, file);
+      if (error) throw error;
+      const { data: urlData } = storage.from("products").getPublicUrl(data.path);
+      uploadedUrls.push(urlData.publicUrl);
+      if (progressBar) progressBar.style.width = `${((i + 1) / newFiles.length) * 100}%`;
+      if (progressText) progressText.textContent = `Uploading ${i + 1}/${newFiles.length}`;
+    } catch (e) {
+      console.warn("Image upload error:", e);
+    }
+  }
+
+  if (progressEl) progressEl.style.display = "none";
+
+  const allImages = [...existingUrls, ...uploadedUrls];
+  const image_url = allImages[0] || null;
+  const images = allImages;
+
+  const productData = {
     name,
-    description:  document.getElementById("pf-desc").value.trim(),
+    description: desc,
     price,
-    old_price:    parseFloat(document.getElementById("pf-old-price").value) || null,
-    stock:        parseInt(document.getElementById("pf-stock").value) || 0,
-    category_id:  document.getElementById("pf-category").value || null,
-    phone_models: document.getElementById("pf-models").value.trim(),
-    is_featured:  document.getElementById("pf-featured").checked,
-    is_new:       document.getElementById("pf-new").checked,
-    is_bestseller:document.getElementById("pf-bestseller").checked,
-    is_premium:   document.getElementById("pf-premium").checked,
-    images:       uploadedUrls,
-    image_url:    uploadedUrls[0] || null,
-    updated_at:   new Date().toISOString()
+    old_price,
+    stock,
+    category_id,
+    phone_models,
+    images,
+    image_url,
+    is_featured,
+    is_new,
+    is_bestseller,
+    is_premium,
+    updated_at: new Date().toISOString(),
   };
 
   try {
-    if (editingProductId) {
-      await sb.from("products").update(payload).eq("id", editingProductId);
+    if (id) {
+      const { error } = await db.from("products").update(productData).eq("id", id);
+      if (error) throw error;
+      toast("Product updated");
     } else {
-      payload.created_at = new Date().toISOString();
-      await sb.from("products").insert(payload);
+      const { error } = await db.from("products").insert(productData);
+      if (error) throw error;
+      toast("Product added");
     }
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    closeModal("product-form-modal");
     await fetchProducts();
     renderAdminProducts();
-    renderHomeSections();
-    closeModal("modal-product-form");
-    toast("✅ Mahsulot saqlandi", "success");
   } catch (e) {
-    toast("❌ " + e.message, "error");
+    console.error("Save product error:", e);
+    toast("Failed to save product");
   }
-  document.getElementById("pf-upload-progress").style.display = "none";
 }
 
 async function deleteProduct(id) {
-  if (!confirm("Mahsulotni o'chirishni tasdiqlaysizmi?")) return;
+  if (!confirm("Delete this product?")) return;
   try {
-    await sb.from("products").delete().eq("id", id);
-    allProducts = allProducts.filter(p => p.id != id);
+    const { error } = await db.from("products").delete().eq("id", id);
+    if (error) throw error;
+    toast("Product deleted");
+    await fetchProducts();
     renderAdminProducts();
-    renderHomeSections();
-    toast("🗑 O'chirildi", "info");
-  } catch (e) { toast("❌ " + e.message, "error"); }
-}
-
-// ── Admin Categories ────────────────────────────────────
-function renderAdminCategories() {
-  const el = document.getElementById("a-categories-list");
-  if (!el) return;
-  el.innerHTML = allCategories.map(c => `
-    <div class="admin-row">
-      <div class="admin-row-head">
-        <span style="font-size:20px">${c.icon||"📦"}</span>
-        <span class="admin-row-name">${c.name}</span>
-        <span style="font-size:10px;padding:3px 8px;border-radius:99px;background:${c.color||"#00c6ff"}22;color:${c.color||"#00c6ff"};border:1px solid ${c.color||"#00c6ff"}44">${c.color||""}</span>
-      </div>
-      <div class="admin-row-actions">
-        <button class="btn-ghost" onclick="openCategoryForm('${c.id}')">✏️</button>
-        <button class="btn-danger" onclick="deleteCategory('${c.id}')">🗑</button>
-      </div>
-    </div>`).join("") || `<div style="color:var(--text2);text-align:center;padding:24px">Kategoriya yo'q</div>`;
-}
-
-function openCategoryForm(id = null) {
-  editingCategoryId = id;
-  if (id) {
-    const c = allCategories.find(x => x.id == id);
-    document.getElementById("cf-id").value    = c.id;
-    document.getElementById("cf-name").value  = c.name || "";
-    document.getElementById("cf-icon").value  = c.icon || "";
-    document.getElementById("cf-color").value = c.color || "#00c6ff";
-  } else {
-    ["cf-id","cf-name","cf-icon"].forEach(x => document.getElementById(x).value = "");
-    document.getElementById("cf-color").value = "#00c6ff";
+  } catch (e) {
+    console.error("Delete product error:", e);
+    toast("Failed to delete product");
   }
-  openModal("modal-cat-form");
+}
+
+// ── Admin Categories ─────────────────────────────────────────
+function renderAdminCategories() {
+  const list = document.getElementById("a-categories-list");
+  if (!list) return;
+  list.innerHTML = categories
+    .map(
+      (c) => `
+    <div class="admin-list-item">
+      <span class="ali-icon">${c.icon || ""}</span>
+      <span class="ali-name">${c.name}</span>
+      <span class="ali-color" style="background:${c.color || "#ccc"}"></span>
+      <div class="ali-actions">
+        <button class="btn-sm" onclick="openCategoryForm(${c.id})">Edit</button>
+        <button class="btn-sm btn-danger" onclick="deleteCategory(${c.id})">Del</button>
+      </div>
+    </div>`
+    )
+    .join("");
+}
+
+function openCategoryForm(id) {
+  const el = (fid, val) => {
+    const e = document.getElementById(fid);
+    if (e) e.value = val != null ? val : "";
+  };
+  el("cf-id", "");
+  el("cf-name", "");
+  el("cf-icon", "");
+  el("cf-color", "#333333");
+
+  if (id) {
+    const c = categories.find((x) => x.id === id);
+    if (!c) return;
+    el("cf-id", c.id);
+    el("cf-name", c.name);
+    el("cf-icon", c.icon || "");
+    el("cf-color", c.color || "#333333");
+  }
+  openModal("category-form-modal");
 }
 
 async function saveCategory() {
-  const name = document.getElementById("cf-name").value.trim();
-  if (!name) { toast("Kategoriya nomini kiriting", "error"); return; }
-  const payload = {
-    name,
-    icon:  document.getElementById("cf-icon").value || "📦",
-    color: document.getElementById("cf-color").value,
-    updated_at: new Date().toISOString()
-  };
+  const id = document.getElementById("cf-id")?.value;
+  const name = document.getElementById("cf-name")?.value.trim();
+  const icon = document.getElementById("cf-icon")?.value.trim();
+  const color = document.getElementById("cf-color")?.value || "#333333";
+
+  if (!name) {
+    toast("Category name is required");
+    return;
+  }
+
   try {
-    if (editingCategoryId) {
-      await sb.from("categories").update(payload).eq("id", editingCategoryId);
+    if (id) {
+      const { error } = await db.from("categories").update({ name, icon, color }).eq("id", id);
+      if (error) throw error;
+      toast("Category updated");
     } else {
-      payload.created_at = new Date().toISOString();
-      await sb.from("categories").insert(payload);
+      const { error } = await db.from("categories").insert({ name, icon, color });
+      if (error) throw error;
+      toast("Category added");
     }
+    closeModal("category-form-modal");
     await fetchCategories();
     renderAdminCategories();
-    renderCatPills("home-cats", allCategories);
-    closeModal("modal-cat-form");
-    toast("✅ Kategoriya saqlandi", "success");
-  } catch (e) { toast("❌ " + e.message, "error"); }
+  } catch (e) {
+    console.error("Save category error:", e);
+    toast("Failed to save category");
+  }
 }
 
 async function deleteCategory(id) {
-  if (!confirm("Kategoriyani o'chirish?")) return;
-  await sb.from("categories").delete().eq("id", id);
-  await fetchCategories();
-  renderAdminCategories();
-  toast("🗑 O'chirildi", "info");
+  if (!confirm("Delete this category?")) return;
+  try {
+    const { error } = await db.from("categories").delete().eq("id", id);
+    if (error) throw error;
+    toast("Category deleted");
+    await fetchCategories();
+    renderAdminCategories();
+  } catch (e) {
+    console.error("Delete category error:", e);
+    toast("Failed to delete category");
+  }
 }
 
-// ── Admin Orders ────────────────────────────────────────
+// ── Admin Orders ─────────────────────────────────────────────
 async function renderAdminOrders() {
-  const el = document.getElementById("a-orders-list");
-  if (!el) return;
+  const list = document.getElementById("a-orders-list");
+  if (!list) return;
+
   try {
-    let orders = await query("orders", { order: "created_at" });
-    if (adminOrderFilter !== "all") orders = orders.filter(o => o.status === adminOrderFilter);
-    el.innerHTML = orders.length
-      ? orders.map(o => {
-          const items = Array.isArray(o.items) ? o.items : [];
-          return `<div class="admin-row">
-            <div class="admin-row-head">
-              <div style="flex:1">
-                <div class="admin-row-name">${o.user_name||"—"} · ${o.phone||""}</div>
-                <div class="admin-row-sub">${o.address||""}</div>
-                <div class="admin-row-sub">${items.map(i=>i.name+"×"+i.qty).join(", ")}</div>
-              </div>
-              <span class="order-status status-${o.status||"pending"}">${statusLabel(o.status)}</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
-              <strong class="order-total">${fmtPrice(o.total)}</strong>
-              <select class="status-select" onchange="updateOrderStatus('${o.id}',this.value)">
-                <option value="pending" ${o.status==="pending"?"selected":""}>Kutilmoqda</option>
-                <option value="confirmed" ${o.status==="confirmed"?"selected":""}>Tasdiqlangan</option>
-                <option value="shipped" ${o.status==="shipped"?"selected":""}>Yuborilgan</option>
-                <option value="delivered" ${o.status==="delivered"?"selected":""}>Yetkazilgan</option>
-                <option value="cancelled" ${o.status==="cancelled"?"selected":""}>Bekor qilindi</option>
-              </select>
-            </div>
-          </div>`;
-        }).join("")
-      : `<div style="color:var(--text2);text-align:center;padding:24px">Buyurtma yo'q</div>`;
-  } catch (e) { el.innerHTML = `<div style="color:var(--danger)">Xatolik: ${e.message}</div>`; }
+    const { data, error } = await db.from("orders").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    const orders = data || [];
+    list.innerHTML = orders
+      .map(
+        (o) => `
+      <div class="admin-list-item" onclick="openOrderDetail(${o.id})">
+        <span class="ali-id">#${o.id}</span>
+        <span class="ali-name">${o.user_name || "Unknown"}</span>
+        <span class="ali-total">${fmtPrice(o.total)}</span>
+        ${statusLabel(o.status)}
+        <span class="ali-date">${fmtDate(o.created_at)}</span>
+      </div>`
+      )
+      .join("");
+    if (!orders.length) list.innerHTML = '<div class="empty-hint">No orders yet</div>';
+  } catch (e) {
+    console.warn("Admin orders error:", e);
+    list.innerHTML = '<div class="empty-hint">Could not load orders</div>';
+  }
 }
 
-async function updateOrderStatus(id, status) {
-  await sb.from("orders").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
-  toast("✅ Status yangilandi", "success");
-  renderAdminOrders();
+async function updateOrderStatus(orderId, newStatus) {
+  try {
+    const { error } = await db.from("orders").update({ status: newStatus }).eq("id", orderId);
+    if (error) throw error;
+    toast("Order status updated");
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    renderAdminOrders();
+    renderAdminDashboard();
+  } catch (e) {
+    console.error("Update order status error:", e);
+    toast("Failed to update status");
+  }
 }
 
-function filterAdminOrders(btn, filter) {
-  adminOrderFilter = filter;
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-  btn.classList.add("active");
-  renderAdminOrders();
+async function openOrderDetail(orderId) {
+  try {
+    const { data, error } = await db.from("orders").select("*").eq("id", orderId).single();
+    if (error) throw error;
+    const o = data;
+    const body = document.getElementById("order-detail-body");
+    if (!body) return;
+
+    body.innerHTML = `
+      <div class="od-header">
+        <span class="od-id">Order #${o.id}</span>
+        ${statusLabel(o.status)}
+      </div>
+      <div class="od-section">
+        <div class="od-label">Customer</div>
+        <div class="od-value">${o.user_name || "Unknown"}</div>
+      </div>
+      <div class="od-section">
+        <div class="od-label">Phone</div>
+        <div class="od-value">${o.phone || "-"}</div>
+      </div>
+      <div class="od-section">
+        <div class="od-label">Address</div>
+        <div class="od-value">${o.address || "-"}</div>
+      </div>
+      <div class="od-section">
+        <div class="od-label">Payment Method</div>
+        <div class="od-value">${o.payment_method || "cash"}</div>
+      </div>
+      ${o.note ? `<div class="od-section"><div class="od-label">Note</div><div class="od-value">${o.note}</div></div>` : ""}
+      <div class="od-section">
+        <div class="od-label">Date</div>
+        <div class="od-value">${fmtDate(o.created_at)}</div>
+      </div>
+      <div class="od-section">
+        <div class="od-label">Items</div>
+        <div class="od-items">
+          ${(o.items || [])
+            .map(
+              (i) => `
+            <div class="od-item">
+              <span>${i.name}</span>
+              <span>×${i.qty}</span>
+              <span>${fmtPrice(i.price * i.qty)}</span>
+            </div>`
+            )
+            .join("")}
+        </div>
+      </div>
+      <div class="od-section od-total-section">
+        <div class="od-label">Total</div>
+        <div class="od-total-value">${fmtPrice(o.total)}</div>
+      </div>
+      ${isAdmin ? `
+        <div class="od-section">
+          <div class="od-label">Update Status</div>
+          <select class="od-status-select" onchange="updateOrderStatus(${o.id}, this.value)">
+            <option value="pending" ${o.status === "pending" ? "selected" : ""}>Pending</option>
+            <option value="confirmed" ${o.status === "confirmed" ? "selected" : ""}>Confirmed</option>
+            <option value="processing" ${o.status === "processing" ? "selected" : ""}>Processing</option>
+            <option value="shipped" ${o.status === "shipped" ? "selected" : ""}>Shipped</option>
+            <option value="delivered" ${o.status === "delivered" ? "selected" : ""}>Delivered</option>
+            <option value="cancelled" ${o.status === "cancelled" ? "selected" : ""}>Cancelled</option>
+          </select>
+        </div>
+      ` : ""}
+    `;
+    openModal("order-detail-modal");
+  } catch (e) {
+    console.error("Order detail error:", e);
+    toast("Could not load order details");
+  }
 }
 
-// ── Admin Requests ──────────────────────────────────────
+// ── Admin Requests ───────────────────────────────────────────
 async function renderAdminRequests() {
-  const el = document.getElementById("a-requests-list");
-  if (!el) return;
+  const list = document.getElementById("a-requests-list");
+  if (!list) return;
+
   try {
-    const reqs = await query("custom_requests", { order: "created_at" });
-    el.innerHTML = reqs.length
-      ? reqs.map(r => `
-          <div class="admin-row">
-            <div class="admin-row-head">
-              <div style="flex:1">
-                <div class="admin-row-name">${r.user_name||"—"} · ${r.contact||""}</div>
-                <div class="admin-row-sub">${r.phone_model||""}</div>
-                <div class="admin-row-sub">${r.description||""}</div>
-              </div>
-              <span class="badge badge-new" style="font-size:9px">${r.status||"new"}</span>
-            </div>
-            ${r.image_url ? `<img src="${r.image_url}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;margin-top:8px;border:1px solid var(--border)" loading="lazy">` : ""}
-            <div class="admin-row-actions">
-              <button class="btn-ghost" onclick="markRequestDone('${r.id}')">✅ Ko'rib chiqildi</button>
-            </div>
-          </div>`).join("")
-      : `<div style="color:var(--text2);text-align:center;padding:24px">So'rov yo'q</div>`;
-  } catch (e) { el.innerHTML = `<div style="color:var(--danger)">Xatolik: ${e.message}</div>`; }
+    const { data, error } = await db.from("custom_requests").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    const requests = data || [];
+    list.innerHTML = requests
+      .map(
+        (r) => `
+      <div class="admin-list-item ali-col">
+        <div class="ali-row">
+          <span class="ali-name">${r.user_name || "Unknown"}</span>
+          ${statusLabel(r.status)}
+        </div>
+        <div class="ali-desc">${r.description || ""}</div>
+        ${r.phone_model ? `<div class="ali-model">📱 ${r.phone_model}</div>` : ""}
+        ${r.contact ? `<div class="ali-contact">📞 ${r.contact}</div>` : ""}
+        ${r.image_url ? `<img class="ali-req-img" src="${r.image_url}" alt="" />` : ""}
+        ${r.admin_reply ? `<div class="ali-reply">💬 ${r.admin_reply}</div>` : ""}
+        <div class="ali-actions">
+          <select class="req-status-sel" onchange="updateRequestStatus(${r.id}, this.value)">
+            <option value="pending" ${r.status === "pending" ? "selected" : ""}>Pending</option>
+            <option value="in_progress" ${r.status === "in_progress" ? "selected" : ""}>In Progress</option>
+            <option value="completed" ${r.status === "completed" ? "selected" : ""}>Completed</option>
+            <option value="rejected" ${r.status === "rejected" ? "selected" : ""}>Rejected</option>
+          </select>
+          <button class="btn-sm" onclick="replyToRequest(${r.id})">Reply</button>
+        </div>
+      </div>`
+      )
+      .join("");
+    if (!requests.length) list.innerHTML = '<div class="empty-hint">No requests yet</div>';
+  } catch (e) {
+    console.warn("Admin requests error:", e);
+    list.innerHTML = '<div class="empty-hint">Could not load requests</div>';
+  }
 }
 
-async function markRequestDone(id) {
-  await sb.from("custom_requests").update({ status: "done" }).eq("id", id);
-  toast("✅ Ko'rib chiqildi deb belgilandi", "success");
-  renderAdminRequests();
+async function updateRequestStatus(reqId, newStatus) {
+  try {
+    const { error } = await db.from("custom_requests").update({ status: newStatus }).eq("id", reqId);
+    if (error) throw error;
+    toast("Request status updated");
+    renderAdminRequests();
+  } catch (e) {
+    console.error("Update request status error:", e);
+    toast("Failed to update status");
+  }
 }
 
-// ── Admin Banners ───────────────────────────────────────
-function renderAdminBanners() {
-  const el = document.getElementById("a-banners-list");
-  if (!el) return;
-  el.innerHTML = allBanners.length
-    ? allBanners.map(b => `
-        <div class="admin-row">
-          ${b.image_url ? `<img src="${b.image_url}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px" loading="lazy">` : ""}
-          <div class="admin-row-head">
-            <span class="admin-row-name">${b.title||"Sarlavsiz"}</span>
-            <span style="font-size:11px;color:${b.is_active?"var(--success)":"var(--text3)"}">${b.is_active?"Aktiv":"Nofaol"}</span>
-          </div>
-          <div class="admin-row-actions">
-            <button class="btn-ghost" onclick="openBannerForm('${b.id}')">✏️</button>
-            <button class="btn-danger" onclick="deleteBanner('${b.id}')">🗑</button>
-          </div>
-        </div>`).join("")
-    : `<div style="color:var(--text2);text-align:center;padding:24px">Banner yo'q</div>`;
+async function replyToRequest(reqId) {
+  const reply = prompt("Enter your reply:");
+  if (!reply) return;
+  try {
+    const { error } = await db.from("custom_requests").update({ admin_reply: reply }).eq("id", reqId);
+    if (error) throw error;
+    toast("Reply sent");
+    renderAdminRequests();
+  } catch (e) {
+    console.error("Reply error:", e);
+    toast("Failed to send reply");
+  }
 }
 
-let bannerImgFile = null;
-function previewBannerImg(inp) {
-  bannerImgFile = inp.files[0];
-  if (!bannerImgFile) return;
+// ── Admin Banners ────────────────────────────────────────────
+async function renderAdminBanners() {
+  const list = document.getElementById("a-banners-list");
+  if (!list) return;
+
+  try {
+    const { data, error } = await db.from("banners").select("*").order("sort_order");
+    if (error) throw error;
+    const bannerList = data || [];
+    list.innerHTML = bannerList
+      .map(
+        (b) => `
+      <div class="admin-list-item">
+        ${b.image_url ? `<img class="ali-img" src="${b.image_url}" alt="" />` : ""}
+        <span class="ali-name">${b.title || "Untitled"}</span>
+        <span class="ali-sub">${b.subtitle || ""}</span>
+        <span class="ali-order">Order: ${b.sort_order || 0}</span>
+        <span class="ali-active">${b.is_active ? "✓ Active" : "✕ Inactive"}</span>
+        <div class="ali-actions">
+          <button class="btn-sm" onclick="openBannerForm(${b.id})">Edit</button>
+          <button class="btn-sm btn-danger" onclick="deleteBanner(${b.id})">Del</button>
+        </div>
+      </div>`
+      )
+      .join("");
+    if (!bannerList.length) list.innerHTML = '<div class="empty-hint">No banners yet</div>';
+  } catch (e) {
+    console.warn("Admin banners error:", e);
+    // Use local banners as fallback
+    list.innerHTML = banners
+      .map(
+        (b) => `
+      <div class="admin-list-item">
+        <span class="ali-name">${b.title || "Untitled"}</span>
+        <div class="ali-actions">
+          <button class="btn-sm" onclick="openBannerForm(${b.id})">Edit</button>
+          <button class="btn-sm btn-danger" onclick="deleteBanner(${b.id})">Del</button>
+        </div>
+      </div>`
+      )
+      .join("");
+  }
+}
+
+function openBannerForm(id) {
+  const el = (fid, val) => {
+    const e = document.getElementById(fid);
+    if (e) {
+      if (e.type === "checkbox") e.checked = !!val;
+      else e.value = val != null ? val : "";
+    }
+  };
+  el("bf-id", "");
+  el("bf-title", "");
+  el("bf-sub", "");
+  el("bf-order", 0);
+  el("bf-icon", "");
+  el("bf-active", true);
+  bannerImgFile = null;
+
+  const ph = document.getElementById("bf-img-ph");
+  const prev = document.getElementById("bf-img-prev");
+  if (ph) ph.style.display = "";
+  if (prev) prev.style.display = "none";
+
+  if (id) {
+    // Find from loaded banners
+    db.from("banners").select("*").eq("id", id).single().then(({ data }) => {
+      if (data) {
+        el("bf-id", data.id);
+        el("bf-title", data.title);
+        el("bf-sub", data.subtitle);
+        el("bf-order", data.sort_order);
+        el("bf-icon", data.icon);
+        el("bf-active", data.is_active);
+        if (data.image_url) {
+          if (ph) ph.style.display = "none";
+          if (prev) {
+            prev.src = data.image_url;
+            prev.style.display = "";
+          }
+        }
+        if (data.color) {
+          const colorInp = document.getElementById("bf-color");
+          if (colorInp) colorInp.value = data.color;
+        }
+      }
+    });
+  }
+  openModal("banner-form-modal");
+}
+
+function previewBannerImg() {
+  const input = document.getElementById("bf-img");
+  if (!input || !input.files || !input.files[0]) return;
+
+  bannerImgFile = input.files[0];
+  const ph = document.getElementById("bf-img-ph");
+  const prev = document.getElementById("bf-img-prev");
   const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById("bf-img-ph").style.display = "none";
-    const prev = document.getElementById("bf-img-prev");
-    prev.src = e.target.result;
-    prev.style.display = "block";
+  reader.onload = (e) => {
+    if (ph) ph.style.display = "none";
+    if (prev) {
+      prev.src = e.target.result;
+      prev.style.display = "";
+    }
   };
   reader.readAsDataURL(bannerImgFile);
 }
 
-function openBannerForm(id = null) {
-  editingBannerId = id;
-  bannerImgFile = null;
-  document.getElementById("bf-img-prev").style.display = "none";
-  document.getElementById("bf-img-ph").style.display = "flex";
+async function saveBanner() {
+  const id = document.getElementById("bf-id")?.value;
+  const title = document.getElementById("bf-title")?.value.trim();
+  const subtitle = document.getElementById("bf-sub")?.value.trim();
+  const sort_order = parseInt(document.getElementById("bf-order")?.value) || 0;
+  const icon = document.getElementById("bf-icon")?.value.trim();
+  const is_active = document.getElementById("bf-active")?.checked ?? true;
+  const color = document.getElementById("bf-color")?.value || "#1c1c1e";
 
-  if (id) {
-    const b = allBanners.find(x => x.id == id);
-    document.getElementById("bf-id").value    = b.id;
-    document.getElementById("bf-title").value = b.title || "";
-    document.getElementById("bf-sub").value   = b.subtitle || "";
-    document.getElementById("bf-order").value = b.sort_order || 0;
-    document.getElementById("bf-active").checked = b.is_active !== false;
-    if (b.image_url) {
-      document.getElementById("bf-img-prev").src = b.image_url;
-      document.getElementById("bf-img-prev").style.display = "block";
-      document.getElementById("bf-img-ph").style.display = "none";
+  if (!title) {
+    toast("Banner title is required");
+    return;
+  }
+
+  let imageUrl = null;
+
+  // Upload image if new file
+  if (bannerImgFile) {
+    try {
+      const ext = bannerImgFile.name.split(".").pop();
+      const path = `banner_${Date.now()}.${ext}`;
+      const { data, error } = await storage.from("banners").upload(path, bannerImgFile);
+      if (!error && data) {
+        const { data: urlData } = storage.from("banners").getPublicUrl(data.path);
+        imageUrl = urlData.publicUrl;
+      }
+    } catch (e) {
+      console.warn("Banner image upload error:", e);
     }
   } else {
-    ["bf-id","bf-title","bf-sub"].forEach(x => document.getElementById(x).value = "");
-    document.getElementById("bf-order").value = 0;
-    document.getElementById("bf-active").checked = true;
-  }
-  openModal("modal-banner-form");
-}
-
-async function saveBanner() {
-  const title = document.getElementById("bf-title").value.trim();
-  let image_url = editingBannerId ? (allBanners.find(b => b.id == editingBannerId)?.image_url || "") : "";
-
-  if (bannerImgFile) {
-    const { data, error } = await sb.storage.from("banners")
-      .upload(`${Date.now()}_${bannerImgFile.name}`, bannerImgFile, { upsert: true });
-    if (!error) {
-      const { data: pd } = sb.storage.from("banners").getPublicUrl(data.path);
-      image_url = pd.publicUrl;
+    // Keep existing image
+    const prev = document.getElementById("bf-img-prev");
+    if (prev && prev.src && prev.style.display !== "none") {
+      imageUrl = prev.src;
     }
   }
 
-  const payload = {
+  const bannerData = {
     title,
-    subtitle:   document.getElementById("bf-sub").value.trim(),
-    sort_order: parseInt(document.getElementById("bf-order").value) || 0,
-    is_active:  document.getElementById("bf-active").checked,
-    image_url
+    subtitle,
+    sort_order,
+    icon: icon || null,
+    is_active,
+    color,
+    image_url: imageUrl,
   };
 
   try {
-    if (editingBannerId) {
-      await sb.from("banners").update(payload).eq("id", editingBannerId);
+    if (id) {
+      const { error } = await db.from("banners").update(bannerData).eq("id", id);
+      if (error) throw error;
+      toast("Banner updated");
     } else {
-      await sb.from("banners").insert(payload);
+      const { error } = await db.from("banners").insert(bannerData);
+      if (error) throw error;
+      toast("Banner added");
     }
+    closeModal("banner-form-modal");
     await fetchBanners();
     renderAdminBanners();
-    setupHero();
-    closeModal("modal-banner-form");
-    toast("✅ Banner saqlandi", "success");
-  } catch (e) { toast("❌ " + e.message, "error"); }
-}
-
-async function deleteBanner(id) {
-  await sb.from("banners").delete().eq("id", id);
-  await fetchBanners();
-  renderAdminBanners();
-  setupHero();
-  toast("🗑 O'chirildi", "info");
-}
-
-// ── Broadcast ───────────────────────────────────────────
-async function doBroadcast() {
-  const text = document.getElementById("bc-text").value.trim();
-  if (!text) { toast("Xabar matni bo'sh", "error"); return; }
-  // In a real setup, the bot handles broadcast. Here we just record it.
-  try {
-    await sb.from("broadcasts").insert({
-      text, created_by: user.id, created_at: new Date().toISOString()
-    });
-    document.getElementById("bc-text").value = "";
-    toast("📢 Xabar bot orqali yuboriladi", "success");
-  } catch {
-    toast("ℹ️ Bot serverdan xabar yuboriladi", "info");
+  } catch (e) {
+    console.error("Save banner error:", e);
+    toast("Failed to save banner");
   }
 }
 
-// ══════════════════════════════════════════════════════
-// MODALS
-// ══════════════════════════════════════════════════════
+async function deleteBanner(id) {
+  if (!confirm("Delete this banner?")) return;
+  try {
+    const { error } = await db.from("banners").delete().eq("id", id);
+    if (error) throw error;
+    toast("Banner deleted");
+    await fetchBanners();
+    renderAdminBanners();
+  } catch (e) {
+    console.error("Delete banner error:", e);
+    toast("Failed to delete banner");
+  }
+}
+
+// ── Admin Users ──────────────────────────────────────────────
+async function renderAdminUsers() {
+  const list = document.getElementById("a-users-list");
+  if (!list) return;
+
+  try {
+    const { data, error } = await db.from("users").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    const users = data || [];
+    list.innerHTML = users
+      .map(
+        (u) => `
+      <div class="admin-list-item">
+        <span class="ali-name">${u.first_name || ""} ${u.last_name || ""}</span>
+        <span class="ali-uname">${u.username ? "@" + u.username : ""}</span>
+        <span class="ali-id">ID: ${u.telegram_id}</span>
+        <span class="ali-date">${fmtDate(u.last_seen || u.created_at)}</span>
+      </div>`
+      )
+      .join("");
+    if (!users.length) list.innerHTML = '<div class="empty-hint">No users yet</div>';
+  } catch (e) {
+    console.warn("Admin users error:", e);
+    list.innerHTML = '<div class="empty-hint">Could not load users</div>';
+  }
+}
+
+// ── Admin Broadcast ──────────────────────────────────────────
+async function doBroadcast() {
+  const text = document.getElementById("bc-text")?.value.trim();
+  const withBtn = document.getElementById("bc-with-btn")?.checked;
+  const silent = document.getElementById("bc-silent")?.checked;
+
+  if (!text) {
+    toast("Broadcast message is required");
+    return;
+  }
+
+  try {
+    const { data: users } = await db.from("users").select("telegram_id");
+    const sentCount = users ? users.length : 0;
+
+    const { error } = await db.from("broadcasts").insert({
+      text,
+      created_by: user.id,
+      sent_count: sentCount,
+    });
+    if (error) throw error;
+
+    toast(`Broadcast sent to ${sentCount} users`);
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+
+    // Clear form
+    if (document.getElementById("bc-text")) document.getElementById("bc-text").value = "";
+    const info = document.getElementById("bc-info");
+    if (info) info.textContent = `Last broadcast sent to ${sentCount} users`;
+
+    loadBroadcastHistory();
+  } catch (e) {
+    console.error("Broadcast error:", e);
+    toast("Failed to send broadcast");
+  }
+}
+
+async function loadBroadcastHistory() {
+  const list = document.getElementById("a-broadcast-history");
+  if (!list) return;
+
+  try {
+    const { data, error } = await db.from("broadcasts").select("*").order("created_at", { ascending: false }).limit(20);
+    if (error) throw error;
+    const broadcasts = data || [];
+    list.innerHTML = broadcasts
+      .map(
+        (b) => `
+      <div class="admin-list-item">
+        <span class="ali-desc">${(b.text || "").substring(0, 80)}${(b.text || "").length > 80 ? "..." : ""}</span>
+        <span class="ali-count">Sent: ${b.sent_count || 0}</span>
+        <span class="ali-date">${fmtDate(b.created_at)}</span>
+      </div>`
+      )
+      .join("");
+    if (!broadcasts.length) list.innerHTML = '<div class="empty-hint">No broadcasts yet</div>';
+  } catch (e) {
+    console.warn("Broadcast history error:", e);
+    list.innerHTML = '<div class="empty-hint">Could not load history</div>';
+  }
+}
+
+// ── Share App ────────────────────────────────────────────────
+function shareApp() {
+  if (tg && tg.openTelegramLink) {
+    tg.openTelegramLink("https://t.me/share/url?url=https://t.me/AksessBot/app&text=Check out AKSESS - Premium Phone Accessories! 📱✨");
+  } else {
+    // Fallback
+    try {
+      navigator.share({
+        title: "AKSESS",
+        text: "Check out AKSESS - Premium Phone Accessories!",
+        url: "https://t.me/AksessBot/app",
+      });
+    } catch {
+      toast("Sharing not supported");
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════
+
+function toast(msg) {
+  const container = document.getElementById("toasts");
+  if (!container) return;
+  const t = document.createElement("div");
+  t.className = "toast-item";
+  t.textContent = msg;
+  container.appendChild(t);
+  // Trigger animation
+  requestAnimationFrame(() => t.classList.add("show"));
+  setTimeout(() => {
+    t.classList.remove("show");
+    setTimeout(() => t.remove(), 300);
+  }, 2500);
+}
+
+function fmtPrice(num) {
+  if (num == null) return "";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num);
+}
+
+function fmtShort(num) {
+  if (num == null) return "0";
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
+}
+
+function fmtDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function statusLabel(status) {
+  const map = {
+    pending: "⏳ Pending",
+    confirmed: "✅ Confirmed",
+    processing: "🔄 Processing",
+    shipped: "📦 Shipped",
+    delivered: "✅ Delivered",
+    cancelled: "❌ Cancelled",
+    in_progress: "🔄 In Progress",
+    completed: "✅ Completed",
+    rejected: "❌ Rejected",
+  };
+  const cls = {
+    pending: "status-pending",
+    confirmed: "status-confirmed",
+    processing: "status-processing",
+    shipped: "status-shipped",
+    delivered: "status-delivered",
+    cancelled: "status-cancelled",
+    in_progress: "status-processing",
+    completed: "status-delivered",
+    rejected: "status-cancelled",
+  };
+  return `<span class="status-badge ${cls[status] || "status-pending"}">${map[status] || status}</span>`;
+}
+
 function openModal(id) {
-  const m = document.getElementById(id);
-  if (m) { m.classList.add("open"); document.body.style.overflow = "hidden"; }
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.add("active");
+  document.body.style.overflow = "hidden";
 }
 
 function closeModal(id) {
-  const m = document.getElementById(id);
-  if (m) { m.classList.remove("open"); document.body.style.overflow = ""; }
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  modal.classList.remove("active");
+  document.body.style.overflow = "";
 }
 
-function onOverlayClick(e, id) {
-  if (e.target.id === id) closeModal(id);
+function onOverlayClick(e, modalId) {
+  if (e.target === e.currentTarget) closeModal(modalId);
 }
 
-function stopProp(e) { e.stopPropagation(); }
-
-// ══════════════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════════════
-function toast(msg, type = "info") {
-  const wrap = document.getElementById("toasts");
-  const el   = document.createElement("div");
-  el.className = `toast toast-${type}`;
-  el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(() => {
-    el.classList.add("removing");
-    setTimeout(() => el.remove(), 300);
-  }, 2800);
+function stopProp(e) {
+  e.stopPropagation();
 }
 
-// ══════════════════════════════════════════════════════
-// UTILS
-// ══════════════════════════════════════════════════════
-function fmtPrice(n) {
-  if (!n) return "0 so'm";
-  return Number(n).toLocaleString("ru-RU") + " so'm";
-}
+// ══════════════════════════════════════════════════════════════
+// DEMO DATA
+// ══════════════════════════════════════════════════════════════
 
-function fmtShort(n) {
-  if (n >= 1e9) return (n/1e9).toFixed(1) + "B";
-  if (n >= 1e6) return (n/1e6).toFixed(1) + "M";
-  if (n >= 1e3) return (n/1e3).toFixed(0) + "K";
-  return String(n||0);
-}
-
-function fmtDate(iso) {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return d.toLocaleDateString("uz-UZ", { day:"2-digit", month:"2-digit", year:"2-digit" });
-}
-
-function statusLabel(s) {
-  const map = { pending:"Kutilmoqda", confirmed:"Tasdiqlangan",
-                shipped:"Yuborilgan", delivered:"Yetkazilgan", cancelled:"Bekor qilindi" };
-  return map[s] || s || "Noma'lum";
-}
-
-// ══════════════════════════════════════════════════════
-// DEMO DATA (Supabase bo'sh bo'lsa ishlaydi)
-// ══════════════════════════════════════════════════════
 function demoCategories() {
   return [
-    { id:"c1", name:"Chehlalar",    icon:"📱", color:"#00c6ff" },
-    { id:"c2", name:"Zaryadlovchi", icon:"⚡", color:"#f59e0b" },
-    { id:"c3", name:"Quloqchin",    icon:"🎧", color:"#7c3aed" },
-    { id:"c4", name:"Kabel",        icon:"🔌", color:"#34d399" },
-    { id:"c5", name:"Power Bank",   icon:"🔋", color:"#ef4444" },
-    { id:"c6", name:"Aksessuar",    icon:"💎", color:"#ec4899" },
-    { id:"c7", name:"Gaming",       icon:"🎮", color:"#8b5cf6" },
-    { id:"c8", name:"Smart Watch",  icon:"⌚", color:"#06b6d4" },
+    { id: 1, name: "Cases", icon: "🛡️", color: "#FF6B6B", created_at: new Date().toISOString() },
+    { id: 2, name: "Screen Protectors", icon: "📱", color: "#4ECDC4", created_at: new Date().toISOString() },
+    { id: 3, name: "Chargers", icon: "⚡", color: "#FFE66D", created_at: new Date().toISOString() },
+    { id: 4, name: "Cables", icon: "🔌", color: "#A8E6CF", created_at: new Date().toISOString() },
+    { id: 5, name: "Power Banks", icon: "🔋", color: "#FF8B94", created_at: new Date().toISOString() },
+    { id: 6, name: "Earphones", icon: "🎧", color: "#B5EAD7", created_at: new Date().toISOString() },
+    { id: 7, name: "Holders", icon: "🏗️", color: "#C7CEEA", created_at: new Date().toISOString() },
+    { id: 8, name: "Accessories", icon: "✨", color: "#E2F0CB", created_at: new Date().toISOString() },
   ];
 }
 
 function demoBanners() {
   return [
-    { id:"b1", title:"iPhone 15 Pro chehlalari", subtitle:"Eng zo'r himoya • MagSafe qo'llab-quvvatlaydi",
-      icon:"📱", color:"linear-gradient(135deg,rgba(0,198,255,.25),rgba(124,58,237,.25))", is_active:true },
-    { id:"b2", title:"150W Ultra Fast Charging", subtitle:"5 daqiqada 50% quvvat to'ldiring",
-      icon:"⚡", color:"linear-gradient(135deg,rgba(245,158,11,.2),rgba(239,68,68,.2))", is_active:true },
-    { id:"b3", title:"Premium Audio • 40% Chegirma", subtitle:"Sony, JBL, Marshall quloqchinlar",
-      icon:"🎧", color:"linear-gradient(135deg,rgba(124,58,237,.25),rgba(236,72,153,.2))", is_active:true },
+    {
+      id: 1,
+      title: "New Arrivals",
+      subtitle: "Premium cases for iPhone 16",
+      image_url: "",
+      color: "#1c1c1e",
+      icon: "✨",
+      sort_order: 1,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      title: "30% OFF",
+      subtitle: "Screen protectors this week",
+      image_url: "",
+      color: "#FF6B6B",
+      icon: "🔥",
+      sort_order: 2,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: 3,
+      title: "Free Shipping",
+      subtitle: "Orders over $50",
+      image_url: "",
+      color: "#4ECDC4",
+      icon: "🚀",
+      sort_order: 3,
+      is_active: true,
+      created_at: new Date().toISOString(),
+    },
   ];
 }
 
 function demoProducts() {
   return [
     {
-      id:"p1", name:"iPhone 15 Pro MagSafe Silikon Chehla", price:89000, old_price:120000,
-      description:"Apple MagSafe texnologiyasini qo'llab-quvvatlovchi premium silikon chehla. IP68 suv o'tkazmaslik. 6 ta rang varianti mavjud.",
-      category_id:"c1", stock:45, phone_models:"iPhone 15 Pro, iPhone 15 Pro Max",
-      is_featured:true, is_new:true, is_bestseller:false, is_premium:true,
-      images:[], image_url:"",
+      id: 1, name: "MagSafe Clear Case", description: "Ultra-thin clear case with MagSafe compatibility. Premium polycarbonate back with soft TPU edges.", price: 29.99, old_price: 39.99, stock: 150, category_id: 1, phone_models: "iPhone 16, iPhone 16 Pro", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: false, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p2", name:"Samsung S24 Ultra Shisha Himoya", price:45000, old_price:null,
-      description:"9H qattiqlikdagi tempered glass. Ekranni to'liq himoya qiladi.",
-      category_id:"c1", stock:120, phone_models:"Samsung S24 Ultra",
-      is_featured:true, is_new:false, is_bestseller:true, is_premium:false,
-      images:[], image_url:"",
+      id: 2, name: "Tempered Glass 9H", description: "9H hardness tempered glass screen protector with oleophobic coating. Easy install kit included.", price: 12.99, old_price: null, stock: 300, category_id: 2, phone_models: "iPhone 16 Pro Max, Samsung S24", images: [], image_url: "", is_featured: true, is_new: false, is_bestseller: true, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p3", name:"150W GaN Zaryadlovchi 4-Port", price:185000, old_price:220000,
-      description:"4 portli GaN texnologiyali ultra tez zaryadlovchi. USB-C × 2, USB-A × 2.",
-      category_id:"c2", stock:28, phone_models:"",
-      is_featured:true, is_new:true, is_bestseller:false, is_premium:true,
-      images:[], image_url:"",
+      id: 3, name: "20W GaN Charger", description: "Compact 20W GaN fast charger with USB-C port. Universal compatibility.", price: 24.99, old_price: 34.99, stock: 80, category_id: 3, phone_models: "Universal", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: true, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p4", name:"JBL Tune 770NC Quloqchin", price:890000, old_price:1200000,
-      description:"Aktiv shovqin bekor qilish. 70 soat quvvat. Bluetooth 5.3.",
-      category_id:"c3", stock:8, phone_models:"",
-      is_featured:false, is_new:false, is_bestseller:true, is_premium:true,
-      images:[], image_url:"",
+      id: 4, name: "Braided USB-C Cable 1.5m", description: "Premium nylon braided USB-C to USB-C cable. 100W charging support.", price: 15.99, old_price: null, stock: 200, category_id: 4, phone_models: "Universal", images: [], image_url: "", is_featured: false, is_new: false, is_bestseller: true, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p5", name:"20000 mAh Power Bank 65W", price:320000, old_price:380000,
-      description:"USB-C 65W PD, 2× USB-A. Noutbuk ham zaryadlaydi.",
-      category_id:"c5", stock:35, phone_models:"",
-      is_featured:false, is_new:true, is_bestseller:false, is_premium:false,
-      images:[], image_url:"",
+      id: 5, name: "10000mAh Slim Power Bank", description: "Ultra-slim portable charger with dual USB-C ports. LED indicator.", price: 39.99, old_price: 49.99, stock: 60, category_id: 5, phone_models: "Universal", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: false, is_premium: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p6", name:"Type-C to Lightning Kabel 2m", price:35000, old_price:null,
-      description:"MFi sertifikatlangan. 240W quvvat uzatish. Kuchli o'rama.",
-      category_id:"c4", stock:200, phone_models:"iPhone 14, iPhone 13, iPhone 12",
-      is_featured:false, is_new:false, is_bestseller:true, is_premium:false,
-      images:[], image_url:"",
+      id: 6, name: "ANC Earbuds Pro", description: "Active noise cancelling wireless earbuds with 30hr battery. Premium sound quality.", price: 79.99, old_price: 99.99, stock: 40, category_id: 6, phone_models: "Universal", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: false, is_premium: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p7", name:"Xiaomi 14 Karbon Chehla", price:95000, old_price:null,
-      description:"Haqiqiy karbon tolali ultra ingichka chehla. Og'irligi atigi 18g.",
-      category_id:"c1", stock:15, phone_models:"Xiaomi 14, Xiaomi 14 Pro",
-      is_featured:false, is_new:true, is_bestseller:false, is_premium:true,
-      images:[], image_url:"",
+      id: 7, name: "Magnetic Car Mount", description: "Strong magnetic car phone holder with 360° rotation. Dashboard and vent mount.", price: 19.99, old_price: null, stock: 120, category_id: 7, phone_models: "Universal", images: [], image_url: "", is_featured: false, is_new: false, is_bestseller: true, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
     {
-      id:"p8", name:"Apple Watch 9 Metall Qayish", price:145000, old_price:180000,
-      description:"Zanglamaydigan po'lat. 38mm/42mm mos keladi. 5 ta rang.",
-      category_id:"c8", stock:0, phone_models:"Apple Watch 9, Apple Watch Ultra 2",
-      is_featured:false, is_new:false, is_bestseller:false, is_premium:true,
-      images:[], image_url:"",
+      id: 8, name: "Leather Card Wallet", description: "Genuine leather card wallet with MagSafe attachment. Holds 3 cards.", price: 34.99, old_price: 44.99, stock: 50, category_id: 8, phone_models: "iPhone 16 series", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: false, is_premium: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    },
+    {
+      id: 9, name: "Silicone Case - Midnight", description: "Soft-touch silicone case with microfiber lining. Premium feel.", price: 19.99, old_price: null, stock: 200, category_id: 1, phone_models: "iPhone 16, iPhone 16 Plus", images: [], image_url: "", is_featured: false, is_new: false, is_bestseller: true, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    },
+    {
+      id: 10, name: "Privacy Screen Protector", description: "Anti-spy privacy glass. Side viewing angle blocked.", price: 18.99, old_price: 24.99, stock: 100, category_id: 2, phone_models: "iPhone 16 Pro", images: [], image_url: "", is_featured: false, is_new: true, is_bestseller: false, is_premium: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    },
+    {
+      id: 11, name: "65W GaN Charger 3-Port", description: "65W GaN charger with 2 USB-C + 1 USB-A. Charge 3 devices.", price: 44.99, old_price: 59.99, stock: 30, category_id: 3, phone_models: "Universal", images: [], image_url: "", is_featured: true, is_new: true, is_bestseller: false, is_premium: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    },
+    {
+      id: 12, name: "20000mAh Power Bank", description: "High-capacity power bank with 65W PD fast charging. LED display.", price: 59.99, old_price: null, stock: 25, category_id: 5, phone_models: "Universal", images: [], image_url: "", is_featured: false, is_new: false, is_bestseller: false, is_premium: true, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     },
   ];
 }
+
+// ══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════════════════
+
+async function init() {
+  // Init Supabase
+  initSupabase();
+
+  // Init Telegram WebApp
+  initTelegram();
+
+  // Load persistent data
+  loadCart();
+  try {
+    favs = JSON.parse(localStorage.getItem(FAVS_KEY)) || [];
+  } catch {
+    favs = [];
+  }
+  updateCartBadge();
+
+  // Fetch data from Supabase
+  await Promise.all([fetchCategories(), fetchBanners(), fetchProducts()]);
+
+  // Setup realtime subscriptions
+  setupRealtime();
+
+  // Render home page
+  setupHero();
+  renderHomeSections();
+
+  // Setup bottom nav
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const page = item.dataset.page;
+      if (page) openPage(page);
+    });
+  });
+
+  // Setup back button
+  if (tg && tg.BackButton) {
+    tg.BackButton.onClick(() => goBack());
+  }
+
+  // Setup search
+  const searchInput = document.getElementById("search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", onSearchInput);
+  }
+  const searchClear = document.getElementById("search-clear");
+  if (searchClear) {
+    searchClear.addEventListener("click", clearSearch);
+  }
+
+  // Setup admin tabs
+  document.querySelectorAll(".admin-tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const tabName = tab.dataset.tab;
+      if (tabName) switchTab(tabName);
+    });
+  });
+
+  // Setup product image input
+  const pfImgs = document.getElementById("pf-imgs");
+  if (pfImgs) {
+    pfImgs.addEventListener("change", addProductImgs);
+  }
+
+  // Setup request image input
+  const reqImgInp = document.getElementById("req-img-inp");
+  if (reqImgInp) {
+    reqImgInp.addEventListener("change", () => previewReqImg("req-img-inp"));
+  }
+
+  // Setup banner image input
+  const bfImg = document.getElementById("bf-img");
+  if (bfImg) {
+    bfImg.addEventListener("change", previewBannerImg);
+  }
+
+  // Navigate to home
+  navigateTo("page-home");
+}
+
+// Start the app
+document.addEventListener("DOMContentLoaded", init);
