@@ -2,753 +2,537 @@
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0B0C10">
-  <title>Abdujalil Ustaxonasi</title>
-  
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#050508">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>AKSESS — Premium Aksessuarlar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-
-  <style>
-    /* ─── VARIABLES ─── */
-    :root {
-      --bg: #0B0C10;
-      --glass: rgba(25, 25, 30, 0.4);
-      --glass-hover: rgba(45, 45, 55, 0.6);
-      --border: rgba(255, 255, 255, 0.12);
-      --border-light: rgba(255, 255, 255, 0.25);
-      --chrome: linear-gradient(180deg, #FFFFFF 0%, #A1A1A1 100%);
-      --chrome-gold: linear-gradient(180deg, #FFDF00 0%, #D4AF37 100%);
-      --accent: #7c3aed;
-      --accent-glow: #00c6ff;
-      --text: #FFFFFF;
-      --text-dim: rgba(255, 255, 255, 0.6);
-      --radius: 24px;
-      --nav-height: 80px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-    
-    body {
-      /* iOS System Fonts to prevent squishing */
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      line-height: 1.4;
-    }
-
-    /* ─── AMBIENT BACKGROUND ─── */
-    .bg-layer { position: fixed; inset: 0; z-index: -1; background: var(--bg); overflow: hidden; }
-    .orb { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.45; animation: float 12s ease-in-out infinite alternate; }
-    .orb-1 { background: #7c3aed; width: 350px; height: 350px; top: -100px; left: -100px; }
-    .orb-2 { background: #00c6ff; width: 300px; height: 300px; bottom: -50px; right: -50px; animation-delay: -4s; }
-    .orb-3 { background: #ec4899; width: 200px; height: 200px; top: 40%; left: 40%; animation-delay: -8s; opacity: 0.3; }
-    .noise { position: fixed; inset: 0; background: url('https://grainy-gradients.vercel.app/noise.svg'); opacity: 0.06; z-index: -1; mix-blend-mode: overlay; pointer-events: none; }
-
-    @keyframes float { 0% { transform: translate(0, 0); } 100% { transform: translate(30px, 50px); } }
-
-    /* ─── LAYOUT & GLASSMORPHISM ─── */
-    .glass-panel {
-      background: var(--glass);
-      backdrop-filter: blur(40px) saturate(200%);
-      -webkit-backdrop-filter: blur(40px) saturate(200%);
-      border: 1px solid var(--border);
-    }
-    
-    main { padding: 75px 0 calc(var(--nav-height) + 30px); }
-    .page { display: none; animation: fadeIn 0.4s ease-out; }
-    .page.active { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-    .section { padding: 0 16px; margin-bottom: 35px; }
-    .sec-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.5px; background: var(--chrome); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-    /* ─── TOPBAR ─── */
-    .topbar {
-      position: fixed; top: 0; left: 0; right: 0; height: 60px;
-      display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
-      z-index: 1000;
-    }
-    .brand { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; background: var(--chrome-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; }
-
-    /* ─── HERO SLIDER ─── */
-    .hero-slider { margin: 10px 16px 30px; height: 220px; border-radius: var(--radius); overflow: hidden; position: relative; }
-    .hero-track { display: flex; height: 100%; transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1); }
-    .hero-slide { min-width: 100%; height: 100%; position: relative; }
-    .hero-slide img { width: 100%; height: 100%; object-fit: cover; }
-    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.95) 100%); padding: 25px 20px; display: flex; flex-direction: column; justify-content: flex-end; }
-    .hero-title { font-size: 20px; font-weight: 700; color: white; line-height: 1.2; text-shadow: 0 4px 12px rgba(0,0,0,0.5); }
-
-    /* ─── CATEGORIES ─── */
-    .cat-scroll { display: flex; gap: 12px; overflow-x: auto; padding: 0 16px 15px; scrollbar-width: none; }
-    .cat-scroll::-webkit-scrollbar { display: none; }
-    .cat-pill { padding: 12px 20px; border-radius: 30px; font-size: 14px; font-weight: 600; color: var(--text-dim); white-space: nowrap; cursor: pointer; transition: 0.3s; }
-    .cat-pill.active { background: white; color: black; box-shadow: 0 4px 15px rgba(255,255,255,0.2); }
-
-    /* ─── PRODUCT GRID ─── */
-    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-    .p-card { border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; position: relative; animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-    @keyframes slideUpFade { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .p-img-wrap { width: 100%; aspect-ratio: 1; background: rgba(0,0,0,0.3); position: relative; overflow: hidden; }
-    .p-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s; }
-    .p-card:active .p-img { transform: scale(1.05); }
-    
-    .fav-btn { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; z-index: 10; }
-    .fav-btn svg { width: 16px; height: 16px; fill: none; stroke: white; stroke-width: 2; transition: 0.3s; }
-    .fav-btn.active svg { fill: #ec4899; stroke: #ec4899; }
-
-    .p-body { padding: 16px; flex-grow: 1; display: flex; flex-direction: column; }
-    .p-name { font-size: 14px; font-weight: 600; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: rgba(255,255,255,0.9); }
-    .p-price-row { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
-    .p-price { font-weight: 700; font-size: 16px; background: var(--chrome); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .add-btn { width: 36px; height: 36px; border-radius: 12px; background: white; color: black; border: none; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 400; cursor: pointer; transition: 0.2s; }
-    .add-btn:active { transform: scale(0.9); background: #ddd; }
-
-    /* ─── CART ─── */
-    .c-item { display: flex; gap: 16px; padding: 16px; border-radius: var(--radius); margin-bottom: 12px; align-items: center; }
-    .c-img { width: 80px; height: 80px; border-radius: 16px; object-fit: cover; background: #000; }
-    .c-info { flex-grow: 1; }
-    .c-name { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-    .c-price { font-size: 14px; color: var(--accent-glow); font-weight: 500; }
-    .c-actions { display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.3); padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); }
-    .c-btn { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); color: white; display: flex; align-items: center; justify-content: center; font-size: 16px; border: none; cursor: pointer; }
-
-    /* ─── NAVIGATION BAR ─── */
-    .navbar {
-      position: fixed; bottom: 15px; left: 16px; right: 16px; height: var(--nav-height);
-      border-radius: 40px;
-      display: flex; align-items: center; justify-content: space-around; z-index: 1000;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6); padding-bottom: env(safe-area-inset-bottom);
-    }
-    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-dim); width: 65px; transition: 0.3s; position: relative; }
-    .nav-item.active { color: white; }
-    .nav-item svg { width: 24px; height: 24px; transition: 0.3s; }
-    .nav-item.active svg { transform: translateY(-4px); filter: drop-shadow(0 0 12px rgba(255,255,255,0.6)); }
-    .nav-item span { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
-    .badge { position: absolute; top: -6px; right: 10px; background: #ec4899; color: white; font-size: 11px; font-weight: 700; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; box-shadow: 0 4px 10px rgba(236,72,153,0.5); }
-
-    /* ─── MODALS & FORMS ─── */
-    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(15px); z-index: 2000; display: none; align-items: flex-end; }
-    .modal.open { display: flex; }
-    .modal-sheet { width: 100%; background: rgba(20,20,25,0.95); border-radius: 35px 35px 0 0; border: 1px solid var(--border-light); padding: 30px 24px; max-height: 92vh; overflow-y: auto; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1); transform: translateY(100%); }
-    .modal.open .modal-sheet { transform: translateY(0); }
-    .modal-handle { width: 50px; height: 5px; background: var(--border-light); border-radius: 10px; margin: -10px auto 25px; cursor: grab; }
-    
-    .input-group { margin-bottom: 20px; }
-    .input-group label { display: block; font-size: 13px; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; padding-left: 5px; }
-    .input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 20px; padding: 18px; color: white; font-size: 15px; outline: none; transition: 0.3s; }
-    .input:focus { border-color: var(--accent-glow); background: rgba(0,198,255,0.05); }
-    
-    .btn-main { width: 100%; padding: 20px; border-radius: 20px; background: white; color: black; font-weight: 700; font-size: 16px; border: none; cursor: pointer; transition: 0.3s; margin-top: 10px; box-shadow: 0 10px 25px rgba(255,255,255,0.2); }
-    .btn-main:active { transform: scale(0.96); box-shadow: none; }
-    .btn-danger { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); box-shadow: none; }
-
-    /* ─── ADMIN PANEL (FULL WIDTH) ─── */
-    .admin-grid { display: grid; grid-template-columns: 1fr; gap: 15px; }
-    .admin-card { display: flex; align-items: center; justify-content: space-between; padding: 20px; border-radius: var(--radius); margin-bottom: 15px; }
-    .admin-info h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
-    .admin-info p { font-size: 13px; color: var(--text-dim); }
-    .del-btn { padding: 10px 15px; background: rgba(239,68,68,0.2); color: #f87171; border-radius: 12px; font-size: 13px; font-weight: 600; }
-
-    /* ─── UTILS ─── */
-    .hidden { display: none !important; }
-    #toasts { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 12px; width: 90%; }
-    .toast { background: rgba(30,30,40,0.95); backdrop-filter: blur(20px); padding: 16px 24px; border-radius: 30px; border: 1px solid var(--border-light); font-size: 14px; font-weight: 600; box-shadow: 0 15px 35px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: space-between; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes pop { from { transform: scale(0.8) translateY(20px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
-
-    /* Loader */
-    .loader-wrap { position: fixed; inset: 0; background: var(--bg); z-index: 5000; display: flex; align-items: center; justify-content: center; flex-direction: column; transition: 0.6s; }
-    .spinner { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.1); border-top-color: white; border-radius: 50%; animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite; margin-top: 25px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
 </head>
 <body>
 
-  <!-- App Loader -->
-  <div id="loader" class="loader-wrap">
-    <h1 class="brand" style="font-size: 36px; background: var(--chrome); -webkit-background-clip: text;">Abdujalil Ustaxonasi</h1>
-    <div class="spinner"></div>
+<!-- ── Animated background ── -->
+<div class="bg-layer">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="noise"></div>
+</div>
+
+<!-- ── SVG Defs for nav gradient ── -->
+<svg class="nav-defs">
+  <defs>
+    <linearGradient id="nav-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00c6ff"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- ── Loader ── -->
+<div id="loader" class="loader">
+  <div class="loader-inner">
+    <div class="loader-logo">AKSESS</div>
+    <div class="loader-sub">Premium Aksessuarlar</div>
+    <div class="loader-bar-wrap"><div class="loader-bar"></div></div>
   </div>
+</div>
 
-  <div class="bg-layer">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <div class="noise"></div>
+<!-- ── Topbar ── -->
+<header class="topbar" id="topbar">
+  <button class="topbar-icon-btn" id="btn-back" onclick="goBack()" style="opacity:0;pointer-events:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
+  <div class="topbar-center" id="topbar-center">
+    <span class="brand">AKSESS</span>
   </div>
+  <button class="topbar-icon-btn cart-icon-btn" onclick="openCart()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+    <span class="cart-badge" id="cart-badge" style="display:none">0</span>
+  </button>
+</header>
 
-  <div id="toasts"></div>
+<!-- ── Pages ── -->
+<main id="app">
 
-  <!-- Topbar -->
-  <header class="topbar glass-panel">
-    <div class="brand">Ustaxona</div>
-    <div style="font-weight: 600; font-size: 15px; color: var(--text-dim);" id="top-username">User</div>
-  </header>
+  <!-- ========== HOME ========== -->
+  <section id="page-home" class="page active">
 
-  <!-- MAIN CONTENT -->
-  <main>
-    
-    <!-- PAGE: HOME -->
-    <div id="page-home" class="page active">
-      <div class="hero-slider">
-        <div class="hero-track" id="hero-track"></div>
-      </div>
-      
-      <div class="cat-scroll" id="cat-list">
-        <div class="cat-pill glass-panel active" onclick="filterCat('all', this)">Barchasi</div>
-        <div class="cat-pill glass-panel" onclick="filterCat('Chexol', this)">Chexollar</div>
-        <div class="cat-pill glass-panel" onclick="filterCat('Kabel', this)">Kabellar</div>
-        <div class="cat-pill glass-panel" onclick="filterCat('Zaryadlovchi', this)">Zaryadlovchilar</div>
-      </div>
+    <!-- Hero Slider -->
+    <div class="hero-wrap">
+      <div class="hero-track" id="hero-track"></div>
+      <div class="hero-dots" id="hero-dots"></div>
+    </div>
 
-      <div class="section">
-        <h2 class="sec-title">Katalog</h2>
-        <div class="grid" id="product-list">
-          <!-- Products -->
-        </div>
+    <!-- Quick categories -->
+    <div class="section">
+      <div class="sec-head"><h2 class="sec-title">Kategoriyalar</h2><button class="see-all" onclick="navigateTo('categories')">Hammasi →</button></div>
+      <div class="cats-scroll" id="home-cats">
+        <div class="cat-pill skeleton"></div><div class="cat-pill skeleton"></div>
+        <div class="cat-pill skeleton"></div><div class="cat-pill skeleton"></div>
       </div>
     </div>
 
-    <!-- PAGE: CART -->
-    <div id="page-cart" class="page">
+    <!-- Trending -->
+    <div class="section">
+      <div class="sec-head"><h2 class="sec-title">🔥 Trendda</h2><button class="see-all" onclick="showAllFiltered('trending')">Barchasi →</button></div>
+      <div class="prods-scroll" id="trending-list">
+        <div class="pcard skeleton-card"></div><div class="pcard skeleton-card"></div><div class="pcard skeleton-card"></div>
+      </div>
+    </div>
+
+    <!-- Promo Banner -->
+    <div class="promo-banner" onclick="openModal('modal-request')">
+      <div class="promo-icon">🔍</div>
+      <div class="promo-text">
+        <h4>Topilmadimi?</h4>
+        <p>Rasm yuboring — biz topib beramiz!</p>
+      </div>
+      <span class="arr" style="color:var(--accent3);font-size:18px">›</span>
+    </div>
+
+    <!-- New Arrivals -->
+    <div class="section">
+      <div class="sec-head"><h2 class="sec-title">✨ Yangi kelganlar</h2><button class="see-all" onclick="showAllFiltered('new')">Barchasi →</button></div>
+      <div class="prods-scroll" id="new-list"></div>
+    </div>
+
+    <!-- Best Sellers -->
+    <div class="section">
+      <div class="sec-head"><h2 class="sec-title">⭐ Ko'p sotilgan</h2><button class="see-all" onclick="showAllFiltered('bestseller')">Barchasi →</button></div>
+      <div class="prods-scroll" id="bestseller-list"></div>
+    </div>
+
+    <!-- Premium -->
+    <div class="section">
+      <div class="sec-head"><h2 class="sec-title">💎 Premium</h2></div>
+      <div class="prods-grid" id="premium-list"></div>
+    </div>
+
+    <!-- Custom request CTA -->
+    <div class="cta-block" onclick="openModal('modal-request')">
+      <div class="cta-glow"></div>
+      <div class="cta-icon-wrap">🔍</div>
+      <div class="cta-body">
+        <h3>Kerakli mahsulot topilmadimi?</h3>
+        <p>Rasm yuboring — biz topib beramiz!</p>
+      </div>
+      <div class="cta-arr">›</div>
+    </div>
+
+    <div class="bottom-space"></div>
+  </section>
+
+  <!-- ========== CATEGORIES ========== -->
+  <section id="page-categories" class="page">
+    <div class="page-body">
+      <div class="cats-grid" id="cats-grid"></div>
+      <div id="cat-products-section" style="display:none">
+        <div class="sec-head" style="margin-top:24px">
+          <h2 class="sec-title" id="cat-products-title">Mahsulotlar</h2>
+          <button class="see-all" onclick="clearCategoryFilter()">← Orqaga</button>
+        </div>
+        <div class="prods-grid" id="cat-products"></div>
+      </div>
+      <div class="bottom-space"></div>
+    </div>
+  </section>
+
+  <!-- ========== SEARCH ========== -->
+  <section id="page-search" class="page">
+    <div class="search-sticky">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="search" id="search-input" placeholder="Mahsulot qidiring..." oninput="onSearchInput(this.value)" autocomplete="off" autocorrect="off">
+        <button id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+      </div>
+    </div>
+    <div class="page-body" id="search-initial">
+      <p class="search-hint">Trend qidiruvlar</p>
+      <div class="trend-tags">
+        <span onclick="setSearch(this.textContent)">iPhone 15 chexol</span>
+        <span onclick="setSearch(this.textContent)">Magsafe</span>
+        <span onclick="setSearch(this.textContent)">Power bank</span>
+        <span onclick="setSearch(this.textContent)">Samsung S24</span>
+        <span onclick="setSearch(this.textContent)">Type-C kabel</span>
+        <span onclick="setSearch(this.textContent)">AirPods case</span>
+        <span onclick="setSearch(this.textContent)">Kamera linza</span>
+        <span onclick="setSearch(this.textContent)">Gaming aksessuar</span>
+      </div>
+    </div>
+    <div class="page-body" id="search-results" style="display:none">
+      <p class="search-count" id="search-count"></p>
+      <div class="prods-grid" id="search-grid"></div>
+    </div>
+    <div class="empty-state" id="search-empty" style="display:none">
+      <div class="es-icon">🔍</div><p>Hech narsa topilmadi</p><span>Boshqa so'z kiriting</span>
+    </div>
+    <div class="bottom-space"></div>
+  </section>
+
+  <!-- ========== ORDERS ========== -->
+  <section id="page-orders" class="page">
+    <div class="page-body">
+      <!-- Order filter tabs -->
+      <div class="order-filter-row" style="margin-top:12px">
+        <button class="filter-btn active" onclick="filterUserOrders(this,'all')">Barchasi</button>
+        <button class="filter-btn" onclick="filterUserOrders(this,'pending')">Kutilmoqda</button>
+        <button class="filter-btn" onclick="filterUserOrders(this,'confirmed')">Tasdiqlangan</button>
+        <button class="filter-btn" onclick="filterUserOrders(this,'shipped')">Yuborilgan</button>
+        <button class="filter-btn" onclick="filterUserOrders(this,'delivered')">Yetkazilgan</button>
+      </div>
+      <div id="orders-list"></div>
+      <div class="empty-state" id="orders-empty" style="display:none">
+        <div class="es-icon">🛍</div><p>Hali buyurtma yo'q</p>
+        <span>Birinchi xaridingizni qiling!</span>
+        <button class="btn-primary" onclick="navigateTo('home')" style="margin-top:18px">Xarid qilish</button>
+      </div>
+      <div class="bottom-space"></div>
+    </div>
+  </section>
+
+  <!-- ========== PROFILE ========== -->
+  <section id="page-profile" class="page">
+    <div class="page-body">
+      <!-- User card -->
+      <div class="profile-hero glass">
+        <div class="profile-ava" id="profile-ava">👤</div>
+        <div class="profile-meta">
+          <h2 id="profile-name">—</h2>
+          <p id="profile-uname" class="muted">@—</p>
+        </div>
+      </div>
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card glass"><span id="st-orders">0</span><small>Buyurtma</small></div>
+        <div class="stat-card glass"><span id="st-favs">0</span><small>Sevimli</small></div>
+        <div class="stat-card glass"><span id="st-spent">0</span><small>Sarflangan</small></div>
+      </div>
+      <!-- Favorites -->
       <div class="section">
-        <h2 class="sec-title">Savatcha</h2>
-        <div id="cart-items"></div>
-        
-        <div id="cart-summary" class="hidden glass-panel" style="margin-top: 25px; padding: 25px; border-radius: var(--radius);">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <span style="color: var(--text-dim); font-size: 15px;">Jami mahsulot:</span>
-            <span id="cart-total-qty" style="font-weight: 700; font-size: 16px;">0 ta</span>
+        <div class="sec-head"><h2 class="sec-title">❤️ Sevimlilar</h2></div>
+        <div class="prods-grid" id="favs-grid">
+          <div class="empty-state inline"><div class="es-icon" style="font-size:28px">💔</div><p style="font-size:13px">Sevimlilar yo'q</p></div>
+        </div>
+      </div>
+      <!-- Menu -->
+      <div class="profile-menu">
+        <div class="menu-row glass" onclick="openModal('modal-request')"><span>🔍</span><span>Maxsus so'rov</span><span class="arr">›</span></div>
+        <div class="menu-row glass" onclick="navigateTo('orders')"><span>📦</span><span>Buyurtmalarim</span><span class="arr">›</span></div>
+        <div class="menu-row glass" onclick="shareApp()"><span>📤</span><span>Do'stlarga ulashish</span><span class="arr">›</span></div>
+        <div class="menu-row glass admin-only" id="admin-menu-row" style="display:none" onclick="navigateTo('admin')"><span>⚙️</span><span>Admin panel</span><span class="arr">›</span></div>
+      </div>
+      <div class="bottom-space"></div>
+    </div>
+  </section>
+
+  <!-- ========== PRODUCT DETAIL ========== -->
+  <section id="page-product" class="page">
+    <div id="product-detail-wrap"></div>
+  </section>
+
+  <!-- ========== ADMIN ========== -->
+  <section id="page-admin" class="page">
+    <div class="admin-wrap">
+      <!-- Tab bar -->
+      <div class="admin-tabs">
+        <button class="atab active" data-tab="dashboard" onclick="switchTab(this,'dashboard')">📊</button>
+        <button class="atab" data-tab="products" onclick="switchTab(this,'products')">📦</button>
+        <button class="atab" data-tab="categories" onclick="switchTab(this,'categories')">🏷</button>
+        <button class="atab" data-tab="orders" onclick="switchTab(this,'orders')">🛍</button>
+        <button class="atab" data-tab="requests" onclick="switchTab(this,'requests')">🔍</button>
+        <button class="atab" data-tab="banners" onclick="switchTab(this,'banners')">🖼</button>
+        <button class="atab" data-tab="users" onclick="switchTab(this,'users')">👥</button>
+        <button class="atab" data-tab="broadcast" onclick="switchTab(this,'broadcast')">📢</button>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="atab-content active" id="tab-dashboard">
+        <h3 class="admin-title">Statistika</h3>
+        <div class="admin-stats-grid">
+          <div class="a-stat glass"><strong id="as-products">—</strong><small>Mahsulotlar</small></div>
+          <div class="a-stat glass"><strong id="as-orders">—</strong><small>Buyurtmalar</small></div>
+          <div class="a-stat glass"><strong id="as-users">—</strong><small>Foydalanuvchilar</small></div>
+          <div class="a-stat glass"><strong id="as-revenue">—</strong><small>Daromad</small></div>
+        </div>
+        <h4 class="admin-title sm">📊 Buyurtmalar diagrammasi</h4>
+        <div class="admin-stats-grid">
+          <div class="a-stat glass"><strong id="as-pending">—</strong><small>Kutilmoqda</small></div>
+          <div class="a-stat glass"><strong id="as-delivered">—</strong><small>Yetkazilgan</small></div>
+        </div>
+        <h4 class="admin-title sm">So'nggi buyurtmalar</h4>
+        <div id="a-recent-orders"></div>
+        <h4 class="admin-title sm">So'nggi so'rovlar</h4>
+        <div id="a-recent-requests"></div>
+      </div>
+
+      <!-- Products -->
+      <div class="atab-content" id="tab-products">
+        <div class="admin-tab-top"><h3 class="admin-title">Mahsulotlar</h3><button class="btn-primary sm" onclick="openProductForm()">+ Qo'shish</button></div>
+        <div id="a-products-list"></div>
+      </div>
+
+      <!-- Categories -->
+      <div class="atab-content" id="tab-categories">
+        <div class="admin-tab-top"><h3 class="admin-title">Kategoriyalar</h3><button class="btn-primary sm" onclick="openCategoryForm()">+ Qo'shish</button></div>
+        <div id="a-categories-list"></div>
+      </div>
+
+      <!-- Orders -->
+      <div class="atab-content" id="tab-orders">
+        <h3 class="admin-title">Buyurtmalar</h3>
+        <div class="order-filter-row">
+          <button class="filter-btn active" onclick="filterAdminOrders(this,'all')">Barchasi</button>
+          <button class="filter-btn" onclick="filterAdminOrders(this,'pending')">Kutilmoqda</button>
+          <button class="filter-btn" onclick="filterAdminOrders(this,'confirmed')">Tasdiqlangan</button>
+          <button class="filter-btn" onclick="filterAdminOrders(this,'shipped')">Yuborilgan</button>
+          <button class="filter-btn" onclick="filterAdminOrders(this,'delivered')">Yetkazilgan</button>
+          <button class="filter-btn" onclick="filterAdminOrders(this,'cancelled')">Bekor qilingan</button>
+        </div>
+        <div id="a-orders-list"></div>
+      </div>
+
+      <!-- Requests -->
+      <div class="atab-content" id="tab-requests">
+        <h3 class="admin-title">Maxsus so'rovlar</h3>
+        <div id="a-requests-list"></div>
+      </div>
+
+      <!-- Banners -->
+      <div class="atab-content" id="tab-banners">
+        <div class="admin-tab-top"><h3 class="admin-title">Bannerlar</h3><button class="btn-primary sm" onclick="openBannerForm()">+ Qo'shish</button></div>
+        <div id="a-banners-list"></div>
+      </div>
+
+      <!-- Users -->
+      <div class="atab-content" id="tab-users">
+        <h3 class="admin-title">Foydalanuvchilar</h3>
+        <div id="a-users-list"></div>
+      </div>
+
+      <!-- Broadcast -->
+      <div class="atab-content" id="tab-broadcast">
+        <h3 class="admin-title">📢 Ommaviy xabar</h3>
+        <div class="glass" style="padding:18px;border-radius:var(--r)">
+          <div class="fg">
+            <label>Xabar matni</label>
+            <textarea id="bc-text" class="glass-input" rows="5" placeholder="Xabar matni..." style="width:100%;resize:vertical"></textarea>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 25px; align-items: flex-end;">
-            <span style="font-weight: 600; font-size: 16px;">Umumiy summa:</span>
-            <span id="cart-total-price" style="font-weight: 800; font-size: 22px; background: var(--chrome-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">0 so'm</span>
+          <div class="checkboxes-row">
+            <label class="cb-item"><input type="checkbox" id="bc-with-btn" checked><span>Tugma bilan</span></label>
+            <label class="cb-item"><input type="checkbox" id="bc-silent"><span>Ovozlisiz</span></label>
           </div>
-          <button class="btn-main" onclick="openModal('modal-checkout')">Rasmiylashtirish</button>
+          <button class="btn-primary" style="width:100%;margin-top:14px" onclick="doBroadcast()">📢 Barcha foydalanuvchilarga yuborish</button>
+          <p style="font-size:11px;color:var(--text3);margin-top:10px;text-align:center" id="bc-info"></p>
         </div>
+        <h4 class="admin-title sm" style="margin-top:20px">Xabar tarixi</h4>
+        <div id="a-broadcast-history"></div>
       </div>
-    </div>
 
-    <!-- PAGE: FAVORITES -->
-    <div id="page-favs" class="page">
-      <div class="section">
-        <h2 class="sec-title">Sevimlilar</h2>
-        <div class="grid" id="favs-list">
-          <!-- Favorites -->
-        </div>
+      <div class="bottom-space"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── Bottom Navbar ── -->
+<nav class="bottom-nav">
+  <button class="nav-item active" data-page="home" onclick="navigateTo('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><polyline points="9,21 9,12 15,12 15,21"/></svg>
+    <span>Bosh</span>
+  </button>
+  <button class="nav-item" data-page="categories" onclick="navigateTo('categories')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>Kategoriya</span>
+  </button>
+  <button class="nav-item" data-page="search" onclick="navigateTo('search')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <span>Qidiruv</span>
+  </button>
+  <button class="nav-item" data-page="orders" onclick="navigateTo('orders')" style="position:relative">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><path d="M9 12h6M9 16h4"/></svg>
+    <span>Buyurtma</span>
+  </button>
+  <button class="nav-item" data-page="profile" onclick="navigateTo('profile')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    <span>Profil</span>
+  </button>
+</nav>
+
+<!-- ══════════════ MODALS ══════════════ -->
+
+<!-- Cart -->
+<div id="modal-cart" class="modal-overlay" onclick="onOverlayClick(event,'modal-cart')">
+  <div class="modal-sheet" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>🛒 Savat</h2><button class="modal-close" onclick="closeModal('modal-cart')">✕</button></div>
+    <div class="modal-body">
+      <div id="cart-list"></div>
+      <div id="cart-footer" style="display:none">
+        <div class="cart-total-row"><span>Jami:</span><strong id="cart-total">0</strong></div>
+        <button class="btn-primary" style="width:100%" onclick="openOrderModal()">Buyurtma qilish →</button>
       </div>
-    </div>
-
-    <!-- PAGE: PROFILE -->
-    <div id="page-profile" class="page">
-      <div class="section">
-        <div class="glass-panel" style="padding: 30px 20px; border-radius: var(--radius); text-align: center; margin-bottom: 25px;">
-          <div style="width: 80px; height: 80px; background: white; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-          </div>
-          <h2 id="prof-name" style="font-size: 22px; font-weight: 700;">Ism</h2>
-          <p id="prof-id" style="font-size: 14px; color: var(--text-dim); margin-top: 5px;">ID: 0</p>
-        </div>
-
-        <button class="glass-panel" style="width: 100%; padding: 20px; border-radius: var(--radius); display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border: 1px solid var(--border); cursor: pointer;" onclick="openModal('modal-request')">
-          <span style="font-size: 16px; font-weight: 600;">🔍 Maxsus buyurtma izlash</span>
-          <span style="color: var(--text-dim);">›</span>
-        </button>
-        
-        <div class="glass-panel" style="padding: 20px; border-radius: var(--radius); margin-bottom: 15px;">
-          <h3 style="font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--accent-glow);">Murojaat uchun:</h3>
-          <p style="font-size: 14px; color: var(--text-dim); line-height: 1.6;">Adminlar bilan bog'lanish:<br>
-          <strong style="color: white;">@yomonboIa</strong> yoki <strong style="color: white;">@gsm_uzmobil</strong></p>
-        </div>
-
-        <!-- Admin Button -->
-        <button id="admin-btn" class="hidden btn-main" style="background: var(--accent); color: white; margin-top: 20px;" onclick="switchPage('admin')">
-          ⚙️ Boshqaruv Paneli (Admin)
-        </button>
+      <div id="cart-empty" class="empty-state inline" style="display:none">
+        <div class="es-icon">🛒</div><p>Savat bo'sh</p>
       </div>
-    </div>
-
-    <!-- PAGE: ADMIN (Full Mode) -->
-    <div id="page-admin" class="page">
-      <div class="section">
-        <h2 class="sec-title" style="color: var(--accent-glow);">Boshqaruv Paneli</h2>
-        
-        <div class="admin-grid" style="margin-bottom: 25px;">
-          <button class="btn-main" onclick="openModal('modal-product')">📦 Yangi Mahsulot Qo'shish</button>
-          <button class="btn-main" style="background: var(--glass); color: white; border: 1px solid var(--border);" onclick="openModal('modal-banner')">🖼 Yangi Banner Qo'shish</button>
-        </div>
-
-        <h3 style="font-size: 18px; margin-bottom: 15px;">Bannerlar</h3>
-        <div id="admin-banners" style="margin-bottom: 30px;"></div>
-
-        <h3 style="font-size: 18px; margin-bottom: 15px;">Mahsulotlar</h3>
-        <div id="admin-products"></div>
-      </div>
-    </div>
-
-  </main>
-
-  <!-- Navigation -->
-  <nav class="navbar glass-panel">
-    <div class="nav-item active" onclick="switchPage('home')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      <span>Asosiy</span>
-    </div>
-    <div class="nav-item" onclick="switchPage('cart')" style="position: relative;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
-      <span>Savat</span>
-      <div id="nav-badge" class="badge hidden">0</div>
-    </div>
-    <div class="nav-item" onclick="switchPage('favs')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-      <span>Sevimli</span>
-    </div>
-    <div class="nav-item" onclick="switchPage('profile')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      <span>Profil</span>
-    </div>
-  </nav>
-
-  <!-- ================= MODALS ================= -->
-
-  <!-- Modal: Checkout -->
-  <div id="modal-checkout" class="modal">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 25px;">Buyurtma Berish</h3>
-      <div class="input-group">
-        <label>Telefon raqamingiz</label>
-        <input type="tel" id="c-phone" class="input" placeholder="+998 90 123 45 67">
-      </div>
-      <div class="input-group">
-        <label>Manzil (Shahar, Tuman)</label>
-        <input type="text" id="c-address" class="input" placeholder="Toshkent shahar...">
-      </div>
-      <div class="input-group">
-        <label>Izoh (Rangi, modeli)</label>
-        <textarea id="c-note" class="input" rows="2" placeholder="Ixtiyoriy..."></textarea>
-      </div>
-      <button class="btn-main" onclick="submitOrder()">Tasdiqlash</button>
     </div>
   </div>
+</div>
 
-  <!-- Modal: Custom Request -->
-  <div id="modal-request" class="modal">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 15px;">Maxsus Mahsulot</h3>
-      <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 25px; line-height: 1.5;">Katalogda yo'q narsani rasm yoki nomini yuboring, biz topib beramiz.</p>
-      
-      <div class="input-group">
-        <div class="glass-panel" style="border-style: dashed; border-radius: 20px; padding: 25px; text-align: center; cursor: pointer;" onclick="document.getElementById('r-img').click()">
-          <input type="file" id="r-img" hidden accept="image/*" onchange="previewImg(this, 'r-prev')">
-          <span style="color: var(--text-dim); font-weight: 600;">📷 Rasm yuklash (ixtiyoriy)</span>
-          <img id="r-prev" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-top: 15px;" class="hidden">
-        </div>
-      </div>
-      <div class="input-group">
-        <label>Telefon modeli</label>
-        <input type="text" id="r-model" class="input" placeholder="Masalan: iPhone 14 Pro">
-      </div>
-      <div class="input-group">
-        <label>Qanday aksessuar?</label>
-        <textarea id="r-desc" class="input" rows="2" placeholder="Tavsifi..."></textarea>
-      </div>
-      <button class="btn-main" id="r-btn" onclick="submitRequest()">So'rov Yuborish</button>
-    </div>
-  </div>
-
-  <!-- Modal: Admin Add Product -->
-  <div id="modal-product" class="modal">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 25px; color: var(--accent-glow);">Mahsulot Qo'shish</h3>
-      <div class="input-group">
-        <div class="glass-panel" style="border-style: dashed; padding: 25px; text-align: center; border-radius: 20px; cursor: pointer;" onclick="document.getElementById('p-img').click()">
-          <input type="file" id="p-img" hidden accept="image/*" onchange="previewImg(this, 'p-prev')">
-          <span style="color: var(--text-dim); font-weight: 600;">📷 Asosiy Rasm Tanlash</span>
-          <img id="p-prev" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; margin-top: 15px;" class="hidden">
-        </div>
-      </div>
-      <div class="input-group"><label>Nomi</label><input type="text" id="p-name" class="input"></div>
-      <div class="input-group"><label>Kategoriya</label>
-        <select id="p-cat" class="input" style="appearance: none;">
-          <option value="Chexol">Chexol</option>
-          <option value="Kabel">Kabel</option>
-          <option value="Zaryadlovchi">Zaryadlovchi</option>
-          <option value="Quloqchin">Quloqchin</option>
+<!-- Order -->
+<div id="modal-order" class="modal-overlay" onclick="onOverlayClick(event,'modal-order')">
+  <div class="modal-sheet" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>📦 Buyurtma rasmiylash</h2><button class="modal-close" onclick="closeModal('modal-order')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg"><label>📞 Telefon raqam</label><input type="tel" id="o-phone" class="glass-input" placeholder="+998 90 000 00 00"></div>
+      <div class="fg"><label>📍 Manzil</label><textarea id="o-address" class="glass-input" rows="2" placeholder="Shahar, ko'cha, uy..."></textarea></div>
+      <div class="fg"><label>💳 To'lov turi</label>
+        <select id="o-payment" class="glass-input">
+          <option value="cash">Naqd pul</option>
+          <option value="card">Karta orqali</option>
+          <option value="transfer">O'tkazma</option>
         </select>
       </div>
-      <div class="input-group"><label>Narxi (so'm)</label><input type="number" id="p-price" class="input"></div>
-      <button class="btn-main" id="p-btn" onclick="saveProduct()">Saqlash</button>
+      <div class="fg"><label>💬 Izoh</label><input type="text" id="o-note" class="glass-input" placeholder="Ixtiyoriy..."></div>
+      <div class="order-summary" id="o-summary"></div>
+      <div class="cart-total-row" style="margin-top:14px"><span>Jami:</span><strong id="o-total">0</strong></div>
+      <button class="btn-primary" style="width:100%;margin-top:18px" onclick="placeOrder()">✅ Tasdiqlash</button>
     </div>
   </div>
+</div>
 
-  <!-- Modal: Admin Add Banner -->
-  <div id="modal-banner" class="modal">
-    <div class="modal-sheet">
-      <div class="modal-handle"></div>
-      <h3 style="font-size: 22px; font-weight: 700; margin-bottom: 25px; color: var(--accent-glow);">Banner Qo'shish</h3>
-      <div class="input-group">
-        <div class="glass-panel" style="border-style: dashed; padding: 25px; text-align: center; border-radius: 20px; cursor: pointer;" onclick="document.getElementById('b-img').click()">
-          <input type="file" id="b-img" hidden accept="image/*" onchange="previewImg(this, 'b-prev')">
-          <span style="color: var(--text-dim); font-weight: 600;">🖼 Banner Rasm Tanlash</span>
-          <img id="b-prev" style="width: 150px; height: 70px; border-radius: 12px; object-fit: cover; margin-top: 15px;" class="hidden">
+<!-- Custom Request -->
+<div id="modal-request" class="modal-overlay" onclick="onOverlayClick(event,'modal-request')">
+  <div class="modal-sheet" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>🔍 Maxsus so'rov</h2><button class="modal-close" onclick="closeModal('modal-request')">✕</button></div>
+    <div class="modal-body">
+      <p class="modal-desc">Kerakli mahsulot rasmini yuboring yoki tavsiflab bering. Adminlar tez orada javob berishadi.</p>
+      <div class="upload-zone" id="req-img-zone" onclick="document.getElementById('req-img-inp').click()">
+        <input type="file" id="req-img-inp" accept="image/*" style="display:none" onchange="previewReqImg(this)">
+        <div id="req-img-ph"><div class="upload-icon">📷</div><span>Rasm tanlash (ixtiyoriy)</span></div>
+        <img id="req-img-prev" src="" alt="" style="display:none">
+      </div>
+      <div class="fg"><label>📝 Tavsif</label><textarea id="req-desc" class="glass-input" rows="3" placeholder="Qanday mahsulot kerak?"></textarea></div>
+      <div class="fg"><label>📱 Telefon modeli</label><input type="text" id="req-model" class="glass-input" placeholder="iPhone 15 Pro, Samsung S24..."></div>
+      <div class="fg"><label>📞 Aloqa</label><input type="text" id="req-contact" class="glass-input" placeholder="+998 90 000 00 00 yoki @username"></div>
+      <button class="btn-primary" style="width:100%;margin-top:18px" onclick="submitRequest()">📨 Yuborish</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Form (Admin) -->
+<div id="modal-product-form" class="modal-overlay" onclick="onOverlayClick(event,'modal-product-form')">
+  <div class="modal-sheet tall" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2 id="pf-title">Mahsulot qo'shish</h2><button class="modal-close" onclick="closeModal('modal-product-form')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pf-id">
+      <div class="fg">
+        <label>📸 Rasmlar</label>
+        <div class="multi-upload-wrap">
+          <div class="upload-add-btn" onclick="document.getElementById('pf-imgs').click()">
+            <span>+ Rasm</span>
+            <input type="file" id="pf-imgs" accept="image/*" multiple style="display:none" onchange="addProductImgs(this)">
+          </div>
+          <div class="img-thumbs" id="pf-thumbs"></div>
+        </div>
+        <div class="upload-progress" id="pf-upload-progress" style="display:none">
+          <div class="upload-progress-bar" id="pf-progress-bar"></div>
+          <span id="pf-progress-text">Yuklanmoqda...</span>
         </div>
       </div>
-      <div class="input-group"><label>Sarlavha</label><input type="text" id="b-title" class="input"></div>
-      <button class="btn-main" id="b-btn" onclick="saveBanner()">Banner Qo'shish</button>
+      <div class="fg"><label>Nomi *</label><input type="text" id="pf-name" class="glass-input" placeholder="Mahsulot nomi"></div>
+      <div class="fg"><label>Tavsif</label><textarea id="pf-desc" class="glass-input" rows="3" placeholder="Mahsulot haqida..."></textarea></div>
+      <div class="form-row">
+        <div class="fg"><label>Narx (so'm) *</label><input type="number" id="pf-price" class="glass-input" placeholder="0"></div>
+        <div class="fg"><label>Eski narx</label><input type="number" id="pf-old-price" class="glass-input" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="fg"><label>Kategoriya</label>
+          <select id="pf-category" class="glass-input"><option value="">Tanlang...</option></select>
+        </div>
+        <div class="fg"><label>Soni (dona)</label><input type="number" id="pf-stock" class="glass-input" placeholder="0" min="0"></div>
+      </div>
+      <div class="fg"><label>Mos telefon modellari</label><input type="text" id="pf-models" class="glass-input" placeholder="iPhone 15, Samsung S24, Xiaomi 14..."></div>
+      <div class="checkboxes-row">
+        <label class="cb-item"><input type="checkbox" id="pf-featured"><span>🔥 Trend</span></label>
+        <label class="cb-item"><input type="checkbox" id="pf-new"><span>✨ Yangi</span></label>
+        <label class="cb-item"><input type="checkbox" id="pf-bestseller"><span>⭐ Best Seller</span></label>
+        <label class="cb-item"><input type="checkbox" id="pf-premium"><span>💎 Premium</span></label>
+      </div>
+      <button class="btn-primary" style="width:100%;margin-top:18px" onclick="saveProduct()">💾 Saqlash</button>
     </div>
   </div>
+</div>
 
-  <script>
-    /* ================= SETUP ================= */
-    const SUPABASE_URL = "https://dzzgqhlyptppyulkyquj.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_y7BTNA-BHKHEQ_QOEdnBfg_bPoEZ6Ry";
-    const ADMIN_ID = 8544023815;
+<!-- Category Form (Admin) -->
+<div id="modal-cat-form" class="modal-overlay" onclick="onOverlayClick(event,'modal-cat-form')">
+  <div class="modal-sheet" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>Kategoriya</h2><button class="modal-close" onclick="closeModal('modal-cat-form')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cf-id">
+      <div class="fg"><label>Nomi *</label><input type="text" id="cf-name" class="glass-input" placeholder="Kategoriya nomi"></div>
+      <div class="fg"><label>Icon (emoji)</label><input type="text" id="cf-icon" class="glass-input" placeholder="📱" maxlength="4"></div>
+      <div class="fg"><label>Rang</label><input type="color" id="cf-color" class="glass-input color-inp" value="#00C6FF"></div>
+      <button class="btn-primary" style="width:100%;margin-top:18px" onclick="saveCategory()">💾 Saqlash</button>
+    </div>
+  </div>
+</div>
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    const tg = window.Telegram?.WebApp;
-    
-    let user = { id: 0, name: "Mehmon", username: "" };
-    let products = [], banners = [], cart = [], favs = [];
-    let activeCategory = 'all';
+<!-- Banner Form (Admin) -->
+<div id="modal-banner-form" class="modal-overlay" onclick="onOverlayClick(event,'modal-banner-form')">
+  <div class="modal-sheet" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>Banner</h2><button class="modal-close" onclick="closeModal('modal-banner-form')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="bf-id">
+      <div class="fg">
+        <label>🖼 Rasm</label>
+        <div class="upload-zone sm" id="bf-img-zone" onclick="document.getElementById('bf-img').click()">
+          <input type="file" id="bf-img" accept="image/*" style="display:none" onchange="previewBannerImg(this)">
+          <div id="bf-img-ph"><div class="upload-icon">🖼</div><span>Rasm yuklash</span></div>
+          <img id="bf-img-prev" src="" alt="" style="display:none">
+        </div>
+      </div>
+      <div class="fg"><label>Sarlavha</label><input type="text" id="bf-title" class="glass-input" placeholder="Banner sarlavhasi"></div>
+      <div class="fg"><label>Tavsif</label><input type="text" id="bf-sub" class="glass-input" placeholder="Qisqa tavsif..."></div>
+      <div class="form-row">
+        <div class="fg"><label>Tartib raqami</label><input type="number" id="bf-order" class="glass-input" value="0"></div>
+        <div class="fg"><label>Icon (emoji)</label><input type="text" id="bf-icon" class="glass-input" placeholder="📱" maxlength="4"></div>
+      </div>
+      <label class="cb-item"><input type="checkbox" id="bf-active" checked><span>Aktiv</span></label>
+      <button class="btn-primary" style="width:100%;margin-top:18px" onclick="saveBanner()">💾 Saqlash</button>
+    </div>
+  </div>
+</div>
 
-    /* ================= INIT ================= */
-    async function init() {
-      if (tg) {
-        tg.ready(); tg.expand();
-        tg.setHeaderColor("#0B0C10"); tg.setBackgroundColor("#0B0C10");
-        if (tg.initDataUnsafe?.user) {
-          user.id = tg.initDataUnsafe.user.id;
-          user.name = tg.initDataUnsafe.user.first_name;
-          user.username = tg.initDataUnsafe.user.username;
-        }
-      }
+<!-- Order Detail (Admin) -->
+<div id="modal-order-detail" class="modal-overlay" onclick="onOverlayClick(event,'modal-order-detail')">
+  <div class="modal-sheet tall" onclick="stopProp(event)">
+    <div class="modal-handle"></div>
+    <div class="modal-head"><h2>Buyurtma tafsilotlari</h2><button class="modal-close" onclick="closeModal('modal-order-detail')">✕</button></div>
+    <div class="modal-body" id="order-detail-body"></div>
+  </div>
+</div>
 
-      document.getElementById('top-username').innerText = user.name;
-      document.getElementById('prof-name').innerText = user.name;
-      document.getElementById('prof-id').innerText = `ID: ${user.id}`;
-      
-      if (user.id === ADMIN_ID || user.id === 0) {
-        document.getElementById('admin-btn').classList.remove('hidden');
-      }
+<!-- Gallery viewer -->
+<div id="modal-gallery" class="gallery-overlay" onclick="closeModal('modal-gallery')">
+  <button class="gallery-close" onclick="closeModal('modal-gallery')">✕</button>
+  <div class="gallery-track" id="gallery-track"></div>
+  <div class="gallery-dots" id="gallery-dots"></div>
+</div>
 
-      loadFavs();
-      await fetchData();
-      
-      setTimeout(() => {
-        document.getElementById('loader').style.opacity = '0';
-        setTimeout(() => document.getElementById('loader').classList.add('hidden'), 600);
-      }, 500);
-    }
+<!-- Toast -->
+<div id="toasts"></div>
 
-    /* ================= DATA & RENDER ================= */
-    async function fetchData() {
-      try {
-        const [pRes, bRes] = await Promise.all([
-          sb.from('products').select('*').order('created_at', { ascending: false }),
-          sb.from('banners').select('*').order('created_at', { ascending: false })
-        ]);
-        products = pRes.data || [];
-        banners = bRes.data || [];
-        
-        renderBanners(); renderProducts(); renderAdminPanel(); renderFavs();
-      } catch (err) { toast("Ma'lumot xatosi!"); }
-    }
-
-    function renderBanners() {
-      const track = document.getElementById('hero-track');
-      if (!banners.length) {
-        track.innerHTML = `<div class="hero-slide"><div class="hero-overlay"><div class="hero-title">Abdujalil Ustaxonasiga Xush Kelibsiz!</div></div></div>`;
-        return;
-      }
-      track.innerHTML = banners.map(b => `
-        <div class="hero-slide">
-          <img src="${b.image_url}" onerror="this.src='https://via.placeholder.com/800x400'">
-          <div class="hero-overlay"><div class="hero-title">${b.title}</div></div>
-        </div>`).join('');
-      startSlider(banners.length);
-    }
-
-    let slideIdx = 0, slideTimer;
-    function startSlider(count) {
-      if (count <= 1) return;
-      clearInterval(slideTimer);
-      slideTimer = setInterval(() => {
-        slideIdx = (slideIdx + 1) % count;
-        document.getElementById('hero-track').style.transform = `translateX(-${slideIdx * 100}%)`;
-      }, 4500);
-    }
-
-    function renderProducts() {
-      const grid = document.getElementById('product-list');
-      let filtered = products;
-      if (activeCategory !== 'all') filtered = products.filter(p => p.description === activeCategory);
-      
-      if (!filtered.length) {
-        grid.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:30px;">Mahsulot yo'q</p>`;
-        return;
-      }
-      
-      grid.innerHTML = filtered.map((p, i) => {
-        const isFav = favs.includes(p.id);
-        return `
-        <div class="p-card glass-panel" style="animation-delay: ${i * 0.05}s">
-          <div class="p-img-wrap">
-            <img src="${p.image_url}" class="p-img" onerror="this.src='https://via.placeholder.com/300?text=Rasm+yoq'">
-            <div class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav('${p.id}', event)">
-              <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-            </div>
-          </div>
-          <div class="p-body">
-            <div class="p-name">${p.name}</div>
-            <div class="p-price-row">
-              <div class="p-price">${fmtPrice(p.price)}</div>
-              <button class="add-btn" onclick="addToCart(${p.id})">+</button>
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-    }
-
-    function filterCat(cat, el) {
-      activeCategory = cat;
-      document.querySelectorAll('.cat-pill').forEach(c => c.classList.remove('active'));
-      el.classList.add('active');
-      renderProducts();
-    }
-
-    /* ================= CART ================= */
-    function addToCart(id) {
-      const product = products.find(p => p.id === id);
-      if (!product) return;
-      const exist = cart.find(c => c.id === id);
-      if (exist) exist.qty++; else cart.push({ ...product, qty: 1 });
-      
-      updateCartUI(); toast("Savatga qo'shildi!");
-      if(tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    }
-
-    function updateQty(id, delta) {
-      const item = cart.find(c => c.id === id);
-      if (!item) return;
-      item.qty += delta;
-      if (item.qty <= 0) cart = cart.filter(c => c.id !== id);
-      updateCartUI();
-    }
-
-    function updateCartUI() {
-      const badge = document.getElementById('nav-badge');
-      const totalQty = cart.reduce((s, i) => s + i.qty, 0);
-      if (totalQty > 0) { badge.innerText = totalQty; badge.classList.remove('hidden'); }
-      else badge.classList.add('hidden');
-      renderCartPage();
-    }
-
-    function renderCartPage() {
-      const cont = document.getElementById('cart-items'), summ = document.getElementById('cart-summary');
-      if (!cart.length) {
-        cont.innerHTML = `<p style="color: var(--text-dim); text-align: center; padding: 40px 0;">Savat bo'sh</p>`;
-        summ.classList.add('hidden'); return;
-      }
-      summ.classList.remove('hidden');
-      let tPrice = 0, tQty = 0;
-      cont.innerHTML = cart.map(c => {
-        tPrice += c.price * c.qty; tQty += c.qty;
-        return `
-        <div class="c-item glass-panel">
-          <img src="${c.image_url}" class="c-img" onerror="this.src='https://via.placeholder.com/100'">
-          <div class="c-info">
-            <div class="c-name">${c.name}</div>
-            <div class="c-price">${fmtPrice(c.price)}</div>
-          </div>
-          <div class="c-actions">
-            <button class="c-btn" onclick="updateQty(${c.id}, -1)">-</button>
-            <span style="font-weight:700; width:15px; text-align:center;">${c.qty}</span>
-            <button class="c-btn" onclick="updateQty(${c.id}, 1)">+</button>
-          </div>
-        </div>`;
-      }).join('');
-      document.getElementById('cart-total-qty').innerText = `${tQty} ta`;
-      document.getElementById('cart-total-price').innerText = fmtPrice(tPrice);
-    }
-
-    async function submitOrder() {
-      const phone = document.getElementById('c-phone').value, addr = document.getElementById('c-address').value, note = document.getElementById('c-note').value;
-      if (!phone || !addr) return toast("Telefon va manzilni yozing!");
-      
-      const totalPrice = cart.reduce((s, i) => s + (i.price * i.qty), 0);
-      const orderData = { action: 'new_order', id: 'ord_' + Date.now(), user_id: user.id, phone, address: addr, note, total: totalPrice, items: cart.map(c => ({ id: c.id, name: c.name, qty: c.qty, price: c.price })) };
-
-      try {
-        await sb.from('orders').insert({ user_telegram_id: user.id, user_name: user.name, phone, address: addr, note, total: totalPrice, items: orderData.items, status: 'pending' });
-        if (tg && tg.sendData) tg.sendData(JSON.stringify(orderData));
-        else { toast("Buyurtma yuborildi!"); closeModal('modal-checkout'); cart = []; updateCartUI(); switchPage('home'); }
-      } catch (err) { toast("Xatolik: " + err.message); }
-    }
-
-    /* ================= FAVORITES ================= */
-    function loadFavs() { try { favs = JSON.parse(localStorage.getItem('favs') || '[]'); } catch { favs = []; } }
-    function saveFavs() { localStorage.setItem('favs', JSON.stringify(favs)); }
-    
-    function toggleFav(id, e) {
-      e.stopPropagation();
-      if (favs.includes(id)) { favs = favs.filter(f => f !== id); toast("Sevimlidan olindi"); }
-      else { favs.push(id); toast("Sevimliga qo'shildi"); }
-      saveFavs(); renderProducts(); renderFavs();
-    }
-
-    function renderFavs() {
-      const cont = document.getElementById('favs-list');
-      const fProds = products.filter(p => favs.includes(p.id));
-      if (!fProds.length) { cont.innerHTML = `<p style="grid-column:1/-1; text-align:center; color:var(--text-dim); padding:40px;">Sevimlilar yo'q</p>`; return; }
-      
-      cont.innerHTML = fProds.map((p, i) => `
-        <div class="p-card glass-panel" style="animation-delay: ${i * 0.05}s">
-          <div class="p-img-wrap">
-            <img src="${p.image_url}" class="p-img">
-            <div class="fav-btn active" onclick="toggleFav('${p.id}', event)"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg></div>
-          </div>
-          <div class="p-body">
-            <div class="p-name">${p.name}</div>
-            <div class="p-price-row"><div class="p-price">${fmtPrice(p.price)}</div><button class="add-btn" onclick="addToCart(${p.id})">+</button></div>
-          </div>
-        </div>`).join('');
-    }
-
-    /* ================= CUSTOM REQUEST ================= */
-    async function submitRequest() {
-      const model = document.getElementById('r-model').value, desc = document.getElementById('r-desc').value, file = document.getElementById('r-img').files[0], btn = document.getElementById('r-btn');
-      if (!model || !desc) return toast("Maydonlarni to'ldiring");
-      btn.innerText = "Yuborilmoqda..."; btn.disabled = true;
-
-      try {
-        let pubUrl = "";
-        if (file) {
-          const { error: upErr, data } = await sb.storage.from('requests').upload(`req_${Date.now()}`, file);
-          if (!upErr) pubUrl = sb.storage.from('requests').getPublicUrl(data.path).data.publicUrl;
-        }
-        const reqData = { action: 'custom_request', id: 'req_' + Date.now(), phone_model: model, description: desc, contact: "@"+user.username, image_url: pubUrl };
-        await sb.from('custom_requests').insert({ user_telegram_id: user.id, user_name: user.name, phone_model: model, description: desc, contact: "@"+user.username, image_url: pubUrl });
-        
-        if (tg && tg.sendData) tg.sendData(JSON.stringify(reqData));
-        else { toast("So'rov yuborildi!"); closeModal('modal-request'); }
-      } catch (e) { toast("Xatolik"); } finally { btn.innerText = "So'rov Yuborish"; btn.disabled = false; }
-    }
-
-    /* ================= ADMIN FUNCTIONS ================= */
-    function renderAdminPanel() {
-      const pCont = document.getElementById('admin-products'), bCont = document.getElementById('admin-banners');
-      pCont.innerHTML = products.map(p => `
-        <div class="admin-card glass-panel">
-          <div class="admin-info"><h3>${p.name}</h3><p>${fmtPrice(p.price)}</p></div>
-          <button class="del-btn" onclick="deleteProduct(${p.id})">O'chirish</button>
-        </div>`).join('');
-      
-      bCont.innerHTML = banners.map(b => `
-        <div class="admin-card glass-panel">
-          <div class="admin-info"><h3>${b.title}</h3></div>
-          <button class="del-btn" onclick="deleteBanner(${b.id})">O'chirish</button>
-        </div>`).join('');
-    }
-
-    async function saveProduct() {
-      const name = document.getElementById('p-name').value, cat = document.getElementById('p-cat').value, price = document.getElementById('p-price').value, file = document.getElementById('p-img').files[0], btn = document.getElementById('p-btn');
-      if (!name || !price || !file) return toast("To'ldiring!");
-      btn.innerText = "Yuklanmoqda..."; btn.disabled = true;
-
-      try {
-        const { error: upErr, data } = await sb.storage.from('products').upload(`p_${Date.now()}`, file);
-        if (upErr) throw upErr;
-        const url = sb.storage.from('products').getPublicUrl(data.path).data.publicUrl;
-        await sb.from('products').insert({ name, description: cat, price: parseInt(price), image_url: url });
-        toast("Qo'shildi!"); closeModal('modal-product'); fetchData();
-      } catch (e) { toast("Xato"); } finally { btn.innerText = "Saqlash"; btn.disabled = false; }
-    }
-
-    async function saveBanner() {
-      const title = document.getElementById('b-title').value, file = document.getElementById('b-img').files[0], btn = document.getElementById('b-btn');
-      if (!title || !file) return toast("To'ldiring!");
-      btn.innerText = "Yuklanmoqda..."; btn.disabled = true;
-
-      try {
-        const { error: upErr, data } = await sb.storage.from('banners').upload(`b_${Date.now()}`, file);
-        if (upErr) throw upErr;
-        const url = sb.storage.from('banners').getPublicUrl(data.path).data.publicUrl;
-        await sb.from('banners').insert({ title, image_url: url });
-        toast("Qo'shildi!"); closeModal('modal-banner'); fetchData();
-      } catch (e) { toast("Xato"); } finally { btn.innerText = "Qo'shish"; btn.disabled = false; }
-    }
-
-    async function deleteProduct(id) {
-      if(!confirm("O'chirasizmi?")) return;
-      await sb.from('products').delete().eq('id', id); toast("O'chirildi!"); fetchData();
-    }
-    
-    async function deleteBanner(id) {
-      if(!confirm("O'chirasizmi?")) return;
-      await sb.from('banners').delete().eq('id', id); toast("O'chirildi!"); fetchData();
-    }
-
-    /* ================= UTILS & UI ================= */
-    function switchPage(pageId) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(`page-${pageId}`).classList.add('active');
-      
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      const activeNav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.getAttribute('onclick').includes(pageId));
-      if(activeNav) activeNav.classList.add('active');
-      window.scrollTo(0,0);
-    }
-
-    function openModal(id) { document.getElementById(id).classList.add('open'); }
-    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-    // Swipe to dismiss modals
-    document.querySelectorAll('.modal-sheet').forEach(sheet => {
-      let startY = 0;
-      sheet.querySelector('.modal-handle').addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, {passive: true});
-      sheet.querySelector('.modal-handle').addEventListener('touchmove', e => {
-        let currentY = e.touches[0].clientY;
-        if(currentY > startY) sheet.style.transform = `translateY(${currentY - startY}px)`;
-      }, {passive: true});
-      sheet.querySelector('.modal-handle').addEventListener('touchend', e => {
-        let endY = e.changedTouches[0].clientY;
-        sheet.style.transform = '';
-        if (endY - startY > 50) sheet.parentElement.classList.remove('open');
-      });
-    });
-
-    // Close modal on background click
-    document.querySelectorAll('.modal').forEach(m => {
-      m.addEventListener('click', e => { if(e.target === m) m.classList.remove('open'); });
-    });
-
-    function previewImg(input, imgId) {
-      const img = document.getElementById(imgId);
-      if (input.files[0]) {
-        const r = new FileReader();
-        r.onload = e => { img.src = e.target.result; img.classList.remove('hidden'); }
-        r.readAsDataURL(input.files[0]);
-      }
-    }
-
-    function toast(msg) {
-      const t = document.createElement('div'); t.className = 'toast';
-      t.innerHTML = `<span>${msg}</span>`;
-      document.getElementById('toasts').appendChild(t);
-      setTimeout(() => { t.style.animation = 'pop 0.3s reverse forwards'; setTimeout(()=>t.remove(), 300); }, 2500);
-    }
-
-    function fmtPrice(num) { return new Intl.NumberFormat('uz-UZ').format(num) + " so'm"; }
-
-    window.onload = init;
-  </script>
+<script src="script.js"></script>
 </body>
 </html>
