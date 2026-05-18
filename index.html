@@ -97,37 +97,35 @@
     .post-username { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .post-time { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
     
-    /* Post Images - Fixed Aspect Ratio (Square 1:1) and Size for strictly neat UI */
+    /* ─── YECHIM: Rasmlar qirqilib ketmasligi uchun o'zgartirildi ─── */
     .post-images { 
       position: relative; 
       width: 100%; 
-      aspect-ratio: 1 / 1; /* Kvadrat format */
-      overflow: hidden; 
       background: #050505; 
     }
     .carousel-container {
       display: flex;
       width: 100%;
-      height: 100%;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
+      align-items: center; /* Rasmlarni vertikal markazlaydi */
     }
     .carousel-container::-webkit-scrollbar { display: none; }
     .carousel-slide {
       flex: 0 0 100%;
-      height: 100%;
-      scroll-snap-align: start;
       display: flex;
       align-items: center;
       justify-content: center;
     }
     .carousel-slide img { 
       width: 100%; 
-      height: 100%; 
-      object-fit: cover;
+      max-height: 500px; /* Ekranga toshib ketmasligi uchun maksimal chegara */
+      height: auto; 
+      object-fit: contain; /* Yechim: Rasmni kesmaydi, to'liq ko'rsatadi */
       cursor: pointer;
+      display: block;
     }
     .carousel-indicator {
       position: absolute;
@@ -221,12 +219,12 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      padding: 20px; /* Safe padding from edges */
+      padding: 20px;
     }
     #fullscreenImg {
       max-width: 100%;
       max-height: 100vh;
-      object-fit: contain; /* Prevents stretching or zooming */
+      object-fit: contain;
     }
   </style>
 </head>
@@ -451,7 +449,7 @@ let notifsData = [];
 
 let userLikes = [];
 let userSaves = [];
-let viewedPosts = new Set(); // Ko'rilgan postlarni qayta count qilmaslik uchun
+let viewedPosts = new Set(); 
 
 let currentFilter = 'all';
 let isAdmin = false;
@@ -475,7 +473,7 @@ if (tgUser) {
 }
 
 /* ═══════════════════════════════════════
-   VIEWS OBSERVER (Ekranda ko'ringanda views oshadi)
+   VIEWS OBSERVER 
 ═══════════════════════════════════════ */
 const viewObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -485,7 +483,7 @@ const viewObserver = new IntersectionObserver((entries) => {
       viewObserver.unobserve(entry.target);
     }
   });
-}, { threshold: 0.5 }); // Postning yarmi ko'ringanda ishlaydi
+}, { threshold: 0.5 }); 
 
 async function incrementViewCount(id) {
   if (viewedPosts.has(id)) return;
@@ -583,7 +581,6 @@ function renderFeed() {
   }
 
   feed.innerHTML = filtered.map((p) => {
-    // Rasmlarni slayd qilish uchun mantiq
     let imagesHtml = '';
     if (p.images && p.images.length > 1) {
       imagesHtml = `
@@ -600,7 +597,13 @@ function renderFeed() {
       `;
     } else {
       const imgSrc = (p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
-      imagesHtml = `<img src="${imgSrc}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Topilmadi'" />`;
+      imagesHtml = `
+        <div class="carousel-container">
+          <div class="carousel-slide">
+             <img src="${imgSrc}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Topilmadi'" />
+          </div>
+        </div>
+      `;
     }
 
     return `
@@ -645,7 +648,6 @@ function renderFeed() {
   
   lucide.createIcons();
 
-  // Observerlarni yoqamiz
   setTimeout(() => {
     document.querySelectorAll('.post-card').forEach(card => viewObserver.observe(card));
   }, 300);
