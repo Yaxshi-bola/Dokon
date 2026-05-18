@@ -59,7 +59,7 @@
     }
     .app-logo { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 6px; }
     .header-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; }
-    .notif-badge { position: absolute; top: -2px; right: -2px; width: 16px; height: 16px; background: var(--accent-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; border: 2px solid var(--bg-primary); }
+    .notif-badge { position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; background: var(--accent-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: white; border: 2px solid var(--bg-primary); }
 
     /* Nav */
     #bottomNav {
@@ -67,7 +67,7 @@
       padding-bottom: var(--safe-bottom); background: rgba(0,0,0,0.85); backdrop-filter: blur(40px);
       border-top: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: space-around; z-index: 1000;
     }
-    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; color: var(--text-tertiary); transition: 0.3s; cursor: pointer; flex: 1; }
+    .nav-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px; color: var(--text-tertiary); transition: 0.3s; cursor: pointer; flex: 1; }
     .nav-item.active { color: var(--accent); }
     .nav-item.active .lucide { stroke-width: 2.5; }
     .nav-label { font-size: 11px; font-weight: 600; }
@@ -101,8 +101,8 @@
     .post-images { 
       position: relative; 
       width: 100%; 
-      aspect-ratio: 4 / 5; /* Instagram uslubida qat'iy nisbat */
-      max-height: 480px;   /* Juda uzun rasmlar bo'lsa maksimal chegara */
+      aspect-ratio: 4 / 5;
+      max-height: 480px;
       overflow: hidden; 
       background: #050505; 
       display: flex;
@@ -112,7 +112,7 @@
     .post-images img { 
       width: 100%; 
       height: 100%; 
-      object-fit: cover; /* Rasmni siqmasdan butun ekranga moslash uchun qismini kesadi */
+      object-fit: cover;
       cursor: pointer;
     }
 
@@ -122,6 +122,7 @@
     .action-btn .lucide { width: 26px; height: 26px; stroke-width: 1.5; color: var(--text-primary); }
     .action-btn.liked .lucide { fill: var(--accent-pink); stroke: var(--accent-pink); color: var(--accent-pink); }
     .action-sep { flex: 1; }
+    .action-btn.saved .lucide { fill: var(--text-primary); }
     .views-count { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-tertiary); }
 
     .product-info { padding: 0 16px 14px; }
@@ -196,7 +197,7 @@
     <div class="header-btn" onclick="openSearch()"><i data-lucide="search"></i></div>
     <div class="header-btn" style="position:relative;" onclick="switchScreen('notifications', document.getElementById('nav-notifications'))">
       <i data-lucide="bell"></i>
-      <div class="notif-badge" id="notifBadge" style="display:none;">0</div>
+      <div class="notif-badge" id="topNotifBadge" style="display:none;">0</div>
     </div>
   </div>
 </div>
@@ -242,7 +243,10 @@
 <div id="bottomNav" style="display:none;">
   <div class="nav-item active" onclick="switchScreen('feed',this)" id="nav-feed"><i data-lucide="home"></i><div class="nav-label">Asosiy</div></div>
   <div class="nav-item" onclick="switchScreen('search',this)" id="nav-search"><i data-lucide="search"></i><div class="nav-label">Qidirish</div></div>
-  <div class="nav-item" onclick="switchScreen('notifications',this)" id="nav-notifications"><i data-lucide="bell"></i><div class="nav-label">Xabarlar</div></div>
+  <div class="nav-item" onclick="switchScreen('notifications',this)" id="nav-notifications">
+    <i data-lucide="bell"></i><div class="nav-label">Xabarlar</div>
+    <div class="notif-badge" id="navNotifBadge" style="display:none;top:2px;right:18px;">0</div>
+  </div>
   <div class="nav-item" onclick="switchScreen('profile',this)" id="nav-profile"><i data-lucide="user"></i><div class="nav-label">Profil</div></div>
 </div>
 
@@ -370,11 +374,9 @@
    CONFIG
 ═══════════════════════════════════════ */
 const CONFIG = {
-  // SIZNING SUPABASE MANZILLARINGIZ (To'g'ridan-to'g'ri biriktirildi)
   SUPABASE_URL: 'https://qbradygfmigzlqxrvhyz.supabase.co', 
   SUPABASE_ANON_KEY: 'sb_publishable_rBGM_8MqI4giNF1QuY6cVA_yjebMuz5',
-  
-  ADMIN_TELEGRAM_ID: '8544023815', // Admin ID
+  ADMIN_TELEGRAM_ID: '8544023815', 
   ADMIN_USERNAME: 'yomonboIa', 
   APP_URL: window.location.origin,
 };
@@ -389,6 +391,10 @@ let commentsData = {};
 let usersData = [];
 let notifsData = [];
 
+// Har bir foydalanuvchining shaxsiy layk va saqlaganlari
+let userLikes = [];
+let userSaves = [];
+
 let currentFilter = 'all';
 let isAdmin = false;
 let uploadedImages = [];
@@ -401,14 +407,13 @@ let tgUser = null;
 if (tg) {
   tg.ready(); tg.expand();
   tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000');
-  tgUser = tg.initDataUnsafe?.user || null;
+  tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test' }; // Fallback for local testing
+} else {
+  tgUser = { id: 'browser_user', first_name: 'Browser' };
 }
 
-// Qat'iy Admin tekshiruvi
 if (tgUser) {
-  isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID);
-} else {
-  isAdmin = true; // Web brauzer orqali test qilish uchun. Telegramda uzil-kesil ishlaydi.
+  isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID) || tgUser.id === 'browser_user';
 }
 
 /* ═══════════════════════════════════════
@@ -444,18 +449,45 @@ async function init() {
 async function loadFromDB() {
   if(!db) return;
   try {
-    const { data: p, error } = await db.from('posts').select('*').order('created_at', {ascending: false});
-    if (error) console.error("Postlarni yuklashda xato:", error);
-    if (p) postsData = p.map(row => ({...row, liked: false, saved: false}));
+    // Shaxsiy layk va saqlanganlarni yuklash
+    if (tgUser) {
+      const [{ data: lData }, { data: sData }] = await Promise.all([
+        db.from('likes').select('post_id').eq('user_id', String(tgUser.id)),
+        db.from('saves').select('post_id').eq('user_id', String(tgUser.id))
+      ]);
+      if(lData) userLikes = lData.map(x => x.post_id);
+      if(sData) userSaves = sData.map(x => x.post_id);
+    }
+
+    const { data: p } = await db.from('posts').select('*').order('created_at', {ascending: false});
+    if (p) {
+      postsData = p.map(row => ({
+        ...row, 
+        liked: userLikes.includes(row.id), 
+        saved: userSaves.includes(row.id)
+      }));
+      // Qadalgan postlarni eng tepaga chiqarish
+      postsData.sort((a,b) => (b.pinned===a.pinned) ? 0 : (b.pinned ? 1 : -1));
+    }
     
+    const { data: s } = await db.from('stories').select('*').order('created_at', {ascending: false});
+    if (s) storiesData = s;
+
     const { data: u } = await db.from('users').select('*');
-    if(u) usersData = u;
+    if (u) usersData = u;
     
     const { data: n } = await db.from('notifications').select('*').order('sent_at', {ascending: false});
-    if(n) notifsData = n;
-  } catch(e) {
-    console.error("Bazaga ulanish xatosi:", e);
-  }
+    if (n) {
+      notifsData = n;
+      // Agar yangiliklar bo'lsa, qizil belgi chiqarish
+      if(notifsData.length > 0) {
+        document.getElementById('topNotifBadge').textContent = notifsData.length;
+        document.getElementById('topNotifBadge').style.display = 'flex';
+        document.getElementById('navNotifBadge').textContent = notifsData.length;
+        document.getElementById('navNotifBadge').style.display = 'flex';
+      }
+    }
+  } catch(e) { console.error("Bazaga ulanish xatosi:", e); }
 }
 
 /* ═══════════════════════════════════════
@@ -467,19 +499,17 @@ function renderFeed() {
   
   if (filtered.length === 0) {
     feed.innerHTML = `<div class="empty-state"><i data-lucide="inbox"></i><div class="empty-state-title">Hozircha mahsulotlar yo'q</div></div>`;
-    lucide.createIcons();
-    return;
+    lucide.createIcons(); return;
   }
 
-  feed.innerHTML = filtered.map((p, index) => `
+  feed.innerHTML = filtered.map((p) => `
     <div class="post-card glass-card" id="post-${p.id}">
       <div class="post-header">
         <div class="post-avatar"><i data-lucide="diamond" style="color:var(--accent);width:24px;height:24px;"></i></div>
         <div class="post-user-info">
-          <div class="post-username">MMR MOBILE <i data-lucide="check-circle" class="verified-badge" style="width:14px;color:var(--accent);"></i> ${p.pinned ? '<i data-lucide="pin" style="width:12px;color:var(--accent-gold);"></i>' : ''}</div>
+          <div class="post-username">MMR MOBILE <i data-lucide="check-circle" class="verified-badge" style="width:14px;color:var(--accent);"></i> ${p.pinned ? '<i data-lucide="pin" style="width:14px;color:var(--accent-gold);margin-left:4px;"></i>' : ''}</div>
           <div class="post-time">${formatTime(p.created_at)}</div>
         </div>
-        ${isAdmin ? `<div style="cursor:pointer;" onclick="deletePost(${p.id})"><i data-lucide="trash-2" style="color:var(--accent-pink);"></i></div>` : ''}
       </div>
       
       <div class="post-images">
@@ -495,7 +525,7 @@ function renderFeed() {
         </div>
         <div class="action-btn" onclick="sharePost(${p.id})"><i data-lucide="send"></i></div>
         <div class="action-sep"></div>
-        <div class="action-btn action-btn-save" onclick="toggleSave(${p.id}, this)"><i data-lucide="bookmark"></i></div>
+        <div class="action-btn action-btn-save ${p.saved ? 'saved' : ''}" onclick="toggleSave(${p.id}, this)"><i data-lucide="bookmark"></i></div>
       </div>
       <div class="product-info">
         <div class="views-count"><i data-lucide="eye" style="width:14px;"></i> ${p.views || 0} marta ko'rildi</div>
@@ -520,12 +550,14 @@ function filterPosts(type, el) {
   renderFeed();
 }
 
+// LIKES (Bazaga bog'landi)
 function toggleLike(id, btn) {
   const p = postsData.find(x => x.id === id);
-  if(!p) return;
+  if(!p || !tgUser) return;
   p.liked = !p.liked;
   p.likes = (p.likes || 0) + (p.liked ? 1 : -1);
-  if(db && tgUser) {
+  
+  if(db) {
     if(p.liked) db.from('likes').insert({post_id: id, user_id: String(tgUser.id)}).then();
     else db.from('likes').delete().eq('post_id', id).eq('user_id', String(tgUser.id)).then();
     db.from('posts').update({likes: p.likes}).eq('id', id).then();
@@ -534,12 +566,20 @@ function toggleLike(id, btn) {
   tg?.HapticFeedback?.impactOccurred('light');
 }
 
+// SAVES (Bazaga bog'landi)
 function toggleSave(id, btn) {
   const p = postsData.find(x => x.id === id);
-  if(!p) return;
+  if(!p || !tgUser) return;
   p.saved = !p.saved;
+  
+  if(db) {
+    if(p.saved) db.from('saves').insert({post_id: id, user_id: String(tgUser.id)}).then();
+    else db.from('saves').delete().eq('post_id', id).eq('user_id', String(tgUser.id)).then();
+  }
+  
   showToast(p.saved ? "Saqlandi" : "Olib tashlandi");
   renderFeed();
+  renderProfile(); // Profilni ham darxol yangilaymiz
   tg?.HapticFeedback?.selectionChanged();
 }
 
@@ -569,8 +609,7 @@ function contactAdmin(title) {
 ═══════════════════════════════════════ */
 async function openComments(id) {
   openPostId = id;
-  const sheet = document.getElementById('commentsSheet');
-  sheet.classList.add('open');
+  document.getElementById('commentsSheet').classList.add('open');
   const list = document.getElementById('commentsList');
   list.innerHTML = '<div class="spinner"></div>';
   
@@ -596,32 +635,19 @@ async function openComments(id) {
   }
   lucide.createIcons();
 }
-
-function closeComments() {
-  document.getElementById('commentsSheet').classList.remove('open');
-  openPostId = null;
-}
+function closeComments() { document.getElementById('commentsSheet').classList.remove('open'); openPostId = null; }
 
 async function submitComment() {
   const input = document.getElementById('commentInput');
   const text = input.value.trim();
   if(!text || !openPostId) return;
-  
   const nc = { id: Date.now(), post_id: openPostId, content: text, first_name: tgUser?.first_name || 'Mehmon', created_at: new Date().toISOString() };
   if(!commentsData[openPostId]) commentsData[openPostId] = [];
   commentsData[openPostId].push(nc);
-  
   const p = postsData.find(x => x.id === openPostId);
   if(p) p.comments_count = (p.comments_count||0) + 1;
-  
-  input.value = '';
-  openComments(openPostId);
-  renderFeed();
-  
-  if(db) {
-    await db.from('comments').insert(nc);
-    await db.from('posts').update({comments_count: p.comments_count}).eq('id', openPostId);
-  }
+  input.value = ''; openComments(openPostId); renderFeed();
+  if(db) { await db.from('comments').insert(nc); await db.from('posts').update({comments_count: p.comments_count}).eq('id', openPostId); }
 }
 
 /* ═══════════════════════════════════════
@@ -641,11 +667,12 @@ function renderStories() {
       </div>`;
   }
   html += storiesData.map(s => `
-    <div class="story-item">
+    <div class="story-item" onclick="openFullscreen('${s.image}')">
       <div class="story-avatar-wrap"><div class="story-avatar-inner"><img src="${s.image}" /></div></div>
       <span class="story-label">${s.name}</span>
     </div>
   `).join('');
+  
   row.innerHTML = html;
   lucide.createIcons();
 }
@@ -685,9 +712,11 @@ function renderProfile() {
     
     <div style="padding:0 16px;">
       <div style="font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i data-lucide="bookmark"></i> Saqlanganlar</div>
-      ${saved.length === 0 ? `<div style="font-size:13px;color:var(--text-tertiary);">Hozircha saqlangan postlar yo'q.</div>` : 
+      ${saved.length === 0 ? `
+        <div class="empty-state" style="padding:30px 0;"><i data-lucide="bookmark" style="width:30px;height:30px;"></i><div style="font-size:13px;">Hozircha saqlangan postlar yo'q.</div></div>
+      ` : 
       `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        ${saved.map(p=>`<div style="aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);"><img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>`).join('')}
+        ${saved.map(p=>`<div style="aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);cursor:pointer;" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);"><img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>`).join('')}
       </div>`}
     </div>
   `;
@@ -697,10 +726,7 @@ function renderProfile() {
 /* ═══════════════════════════════════════
    ADMIN PANEL LOGIC
 ═══════════════════════════════════════ */
-function openAdminPanel() { 
-  document.getElementById('adminPanel').classList.add('open'); 
-  loadAdminDashboard();
-}
+function openAdminPanel() { document.getElementById('adminPanel').classList.add('open'); loadAdminDashboard(); }
 function closeAdminPanel() { document.getElementById('adminPanel').classList.remove('open'); }
 
 function switchAdminTab(name, el) {
@@ -721,94 +747,96 @@ function loadAdminDashboard() {
   document.getElementById('statLikes').textContent = postsData.reduce((acc, p) => acc + (p.likes||0), 0);
 }
 
-// Create Post
 function handleImageUpload(e) {
-  const file = e.target.files[0];
-  if(!file) return;
+  const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = (ev) => {
     uploadedImages.push(ev.target.result);
-    const grid = document.getElementById('imagePreviewGrid');
-    grid.innerHTML += `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);"><img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
+    document.getElementById('imagePreviewGrid').innerHTML += `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);"><img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
   };
   reader.readAsDataURL(file);
 }
 
 async function createPost() {
   const p = {
-    id: Date.now(),
-    type: document.getElementById('postType').value,
-    title: document.getElementById('postTitle').value,
-    description: document.getElementById('postDesc').value,
-    price: document.getElementById('postPrice').value,
-    tags: document.getElementById('postTags').value.split(' '),
+    id: Date.now(), type: document.getElementById('postType').value,
+    title: document.getElementById('postTitle').value, description: document.getElementById('postDesc').value,
+    price: document.getElementById('postPrice').value, tags: document.getElementById('postTags').value.split(' '),
     images: uploadedImages.length ? uploadedImages : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'],
-    created_at: new Date().toISOString(), likes: 0, views: 0, comments_count: 0
+    created_at: new Date().toISOString(), likes: 0, views: 0, comments_count: 0, pinned: false
   };
-  
   if(!p.title) { showToast('Sarlavha kiriting!'); return; }
   
-  // Haqiqiy Bazaga yuborish qismi (endi xatolikni aytadi)
-  if(db) {
-    const { error } = await db.from('posts').insert(p);
-    if(error) {
-      showToast("Xato (Saqlanmadi): " + error.message);
-      return;
-    }
-  } else {
-    showToast("DIQQAT: Supabase ulanmagan!");
-    return;
-  }
+  if(db) { const { error } = await db.from('posts').insert(p); if(error) { showToast("Xato: " + error.message); return; } }
   
-  postsData.unshift(p);
-  showToast('Post muvaffaqiyatli saqlandi!');
-  
+  postsData.unshift({...p, liked:false, saved:false}); showToast('Post saqlandi!');
   ['postTitle','postDesc','postPrice','postTags'].forEach(id => document.getElementById(id).value='');
   document.getElementById('imagePreviewGrid').innerHTML=''; uploadedImages=[];
   renderFeed(); closeAdminPanel();
 }
 
-// Posts List
 function renderAdminPosts() {
   const list = document.getElementById('adminPostsList');
   list.innerHTML = postsData.map(p => `
     <div style="display:flex;gap:12px;padding:12px;background:var(--bg-glass);border-radius:16px;margin-bottom:8px;border:1px solid var(--border-glass);">
-      <div style="width:60px;height:60px;border-radius:10px;overflow:hidden;"><img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;"/></div>
+      <div style="width:60px;height:60px;border-radius:10px;overflow:hidden;position:relative;">
+        <img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;"/>
+        ${p.pinned ? `<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border-radius:50%;padding:2px;"><i data-lucide="pin" style="width:12px;color:var(--accent-gold);"></i></div>` : ''}
+      </div>
       <div style="flex:1;">
         <div style="font-weight:700;font-size:14px;">${p.title}</div>
         <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;"><i data-lucide="heart" style="width:12px;"></i> ${p.likes||0} <i data-lucide="eye" style="width:12px;margin-left:8px;"></i> ${p.views||0}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="background:rgba(255,55,95,0.2);color:var(--accent-pink);padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="deletePost(${p.id})"><i data-lucide="trash-2" style="width:16px;"></i></div>
+        <div style="background:rgba(255,214,10,0.15);color:var(--accent-gold);padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="togglePinPost(${p.id})"><i data-lucide="pin" style="width:16px;"></i></div>
+        <div style="background:rgba(255,55,95,0.15);color:var(--accent-pink);padding:6px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="deletePost(${p.id})"><i data-lucide="trash-2" style="width:16px;"></i></div>
       </div>
     </div>
   `).join('');
   lucide.createIcons();
 }
-function filterAdminPosts(q) { /* Logic omitted for brevity */ }
+function filterAdminPosts(q) { /* Filter logic... */ }
 
 async function deletePost(id) {
   postsData = postsData.filter(p => p.id !== id);
   if(db) await db.from('posts').delete().eq('id', id);
-  renderAdminPosts(); renderFeed(); showToast("O'chirildi");
+  renderAdminPosts(); renderFeed(); renderProfile(); showToast("O'chirildi");
+}
+
+async function togglePinPost(id) {
+  const p = postsData.find(x => x.id === id);
+  if(!p) return;
+  p.pinned = !p.pinned;
+  if(db) await db.from('posts').update({pinned: p.pinned}).eq('id', id);
+  postsData.sort((a,b) => (b.pinned===a.pinned) ? (new Date(b.created_at) - new Date(a.created_at)) : (b.pinned ? 1 : -1));
+  renderAdminPosts(); renderFeed(); showToast(p.pinned ? "Qadab qo'yildi" : "Qadash bekor qilindi");
 }
 
 // Stories
 function handleStoryUpload(e) {
   const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader(); r.onload = (ev) => { storyUploadedImage = ev.target.result; showToast('Rasm tayyor'); }; r.readAsDataURL(f);
+  const r = new FileReader(); r.onload = (ev) => { storyUploadedImage = ev.target.result; showToast('Rasm tayyor, Qo\'shishni bosing'); }; r.readAsDataURL(f);
 }
-function createStory() {
+async function createStory() {
   const name = document.getElementById('storyName').value;
   if(!name || !storyUploadedImage) { showToast('Nomi va rasm kerak!'); return; }
-  const s = { id: Date.now(), name, image: storyUploadedImage };
-  storiesData.push(s); document.getElementById('storyName').value=''; storyUploadedImage=null;
-  renderStories(); renderAdminStoriesList(); showToast('Story qoshildi');
+  const s = { id: Date.now(), name, image: storyUploadedImage, created_at: new Date().toISOString() };
+  if(db) { const { error } = await db.from('stories').insert(s); if(error) { showToast("Xato: " + error.message); return; } }
+  storiesData.unshift(s); document.getElementById('storyName').value=''; storyUploadedImage=null;
+  renderStories(); renderAdminStoriesList(); showToast('Story saqlandi!'); closeAdminPanel();
+}
+async function deleteStory(id) {
+  storiesData = storiesData.filter(s => s.id !== id);
+  if(db) await db.from('stories').delete().eq('id', id);
+  renderStories(); renderAdminStoriesList(); showToast("Story o'chirildi");
 }
 function renderAdminStoriesList() {
-  document.getElementById('adminStoriesList').innerHTML = storiesData.map((s,i) => `
+  document.getElementById('adminStoriesList').innerHTML = storiesData.map((s) => `
     <div style="width:80px;text-align:center;">
-      <div style="width:80px;height:120px;border-radius:12px;overflow:hidden;position:relative;"><img src="${s.image}" style="width:100%;height:100%;object-fit:cover;"/><div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.5);border-radius:50%;padding:4px;color:white;" onclick="storiesData.splice(${i},1);renderStories();renderAdminStoriesList();"><i data-lucide="x" style="width:14px;"></i></div></div>
+      <div style="width:80px;height:120px;border-radius:12px;overflow:hidden;position:relative;">
+        <img src="${s.image}" style="width:100%;height:100%;object-fit:cover;"/>
+        <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.5);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="deleteStory(${s.id})"><i data-lucide="x" style="width:14px;"></i></div>
+      </div>
       <div style="font-size:11px;margin-top:4px;">${s.name}</div>
     </div>
   `).join(''); lucide.createIcons();
@@ -835,6 +863,12 @@ async function sendNotification() {
   if(db) await db.from('notifications').insert(n);
   document.getElementById('notifTitle').value=''; document.getElementById('notifMessage').value='';
   renderNotifications(); showToast('Yuborildi');
+  
+  // Real-time badge ko'rsatish
+  document.getElementById('topNotifBadge').textContent = notifsData.length;
+  document.getElementById('topNotifBadge').style.display = 'flex';
+  document.getElementById('navNotifBadge').textContent = notifsData.length;
+  document.getElementById('navNotifBadge').style.display = 'flex';
 }
 
 // AI
@@ -842,14 +876,9 @@ function aiGenerate(type) {
   const inp = document.getElementById('aiInput')?.value || "Mahsulot";
   const out = document.getElementById('aiOutput');
   out.style.display = 'block';
-  
-  if (type === 'title') {
-    document.getElementById('postTitle').value = `✨ Premium ${inp} - Eng yaxshi narxda`;
-  } else if (type === 'desc') {
-    document.getElementById('postDesc').value = `${inp} endi bizning do'konda! Yuqori sifat, ishonchli kafolat va ajoyib dizayn. Hoziroq xarid qiling.`;
-  } else {
-    out.innerHTML = `<b>AI Tavsiyasi:</b>\nSarlavha: Premium ${inp}\nTavsif: Yuqori sifatli mahsulot...\nHashtaglar: #premium #yangilik`;
-  }
+  if (type === 'title') document.getElementById('postTitle').value = `✨ Premium ${inp} - Eng yaxshi narxda`;
+  else if (type === 'desc') document.getElementById('postDesc').value = `${inp} endi bizning do'konda! Yuqori sifat, ishonchli kafolat va ajoyib dizayn. Hoziroq xarid qiling.`;
+  else out.innerHTML = `<b>AI Tavsiyasi:</b>\nSarlavha: Premium ${inp}\nTavsif: Yuqori sifatli mahsulot...\nHashtaglar: #premium #yangilik`;
 }
 
 /* ═══════════════════════════════════════
@@ -860,15 +889,23 @@ function switchScreen(name, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`screen-${name}`).classList.add('active');
   if(el) el.classList.add('active');
+  else if(document.getElementById(`nav-${name}`)) document.getElementById(`nav-${name}`).classList.add('active');
+  
   document.getElementById('appHeader').style.display = name === 'feed' ? 'flex' : 'none';
   window.scrollTo(0,0);
+
+  // Xabarlarga kirganda badge (qizil nuqta) ni tozalash
+  if(name === 'notifications') {
+    document.getElementById('topNotifBadge').style.display = 'none';
+    document.getElementById('navNotifBadge').style.display = 'none';
+  }
 }
 
 function openSearch() { switchScreen('search', document.getElementById('nav-search')); document.getElementById('searchInput').focus(); }
 function onSearch(q) {
   const res = postsData.filter(p => p.title.toLowerCase().includes(q.toLowerCase()));
   document.getElementById('searchResults').innerHTML = res.map(p => `
-    <div style="padding:16px;border-bottom:1px solid var(--border-glass);" onclick="switchScreen('feed', document.getElementById('nav-feed'))">
+    <div style="padding:16px;border-bottom:1px solid var(--border-glass);" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);">
       <div style="font-weight:700;">${p.title}</div><div style="font-size:12px;color:var(--text-secondary);">${p.price || ''}</div>
     </div>
   `).join('');
