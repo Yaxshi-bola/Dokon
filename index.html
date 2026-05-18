@@ -97,13 +97,24 @@
     .post-username { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .post-time { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
     
-    .post-images { position: relative; overflow: hidden; background: #000; }
-    .carousel-track { display: flex; transition: transform 0.4s ease; }
-    .carousel-slide { flex-shrink: 0; width: 100%; }
-    .carousel-slide img { width: 100%; height: 420px; object-fit: cover; display: block; }
-    .carousel-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
-    .carousel-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); }
-    .carousel-dot.active { background: white; width: 18px; border-radius: 3px; }
+    /* Post Images - Fixed Aspect Ratio and Size */
+    .post-images { 
+      position: relative; 
+      width: 100%; 
+      aspect-ratio: 4 / 5; /* Instagram uslubida qat'iy nisbat */
+      max-height: 480px;   /* Juda uzun rasmlar bo'lsa maksimal chegara */
+      overflow: hidden; 
+      background: #050505; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .post-images img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; /* Rasmni siqmasdan butun ekranga moslash uchun qismini kesadi */
+      cursor: pointer;
+    }
 
     .post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 8px; }
     .action-btn { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary); transition: 0.2s; }
@@ -466,9 +477,12 @@ function renderFeed() {
         </div>
         ${isAdmin ? `<div style="cursor:pointer;" onclick="deletePost(${p.id})"><i data-lucide="trash-2" style="color:var(--accent-pink);"></i></div>` : ''}
       </div>
+      
+      <!-- Modified Post Images logic -->
       <div class="post-images">
         <img src="${(p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'}" onclick="openFullscreen(this.src)" />
       </div>
+
       <div class="post-actions">
         <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)">
           <i data-lucide="heart"></i> <span style="font-size:13px;font-weight:600;">${p.likes || 0}</span>
