@@ -97,12 +97,12 @@
     .post-username { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .post-time { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
     
-    /* Post Images - Carousel Update */
+    /* Post Images - Fixed Aspect Ratio (Square 1:1) and Size for strictly neat UI */
     .post-images { 
       position: relative; 
       width: 100%; 
-      aspect-ratio: 4 / 5;
-      max-height: 480px;
+      aspect-ratio: 1 / 1; /* Kvadrat format */
+      max-height: 400px;
       overflow: hidden; 
       background: #050505; 
     }
@@ -112,7 +112,7 @@
       height: 100%;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
-      scrollbar-width: none; /* Firefox */
+      scrollbar-width: none;
       -webkit-overflow-scrolling: touch;
     }
     .carousel-container::-webkit-scrollbar { display: none; }
@@ -299,7 +299,7 @@
 <!-- FULLSCREEN VIEWER -->
 <div id="fullscreenViewer" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.95);flex-direction:column;justify-content:center;align-items:center;">
   <div style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:var(--bg-glass);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="closeFullscreen()"><i data-lucide="x"></i></div>
-  <img id="fullscreenImg" src="" style="max-width:100%;max-height:100vh;object-fit:contain;" />
+  <img id="fullscreenImg" src="" style="max-width:100%;max-height:100vh;object-fit:contain;" onerror="this.src='https://via.placeholder.com/800?text=Xato+Link'" />
 </div>
 
 <!-- FAB (ADMIN ONLY) -->
@@ -573,7 +573,7 @@ function renderFeed() {
         <div class="carousel-container" onscroll="updateCarouselIndicator(this, ${p.id})">
           ${p.images.map((img) => `
             <div class="carousel-slide">
-              <img src="${img}" onclick="openFullscreen(this.src)" />
+              <img src="${img}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Topilmadi'" />
             </div>
           `).join('')}
         </div>
@@ -583,7 +583,7 @@ function renderFeed() {
       `;
     } else {
       const imgSrc = (p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
-      imagesHtml = `<img src="${imgSrc}" onclick="openFullscreen(this.src)" />`;
+      imagesHtml = `<img src="${imgSrc}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Topilmadi'" />`;
     }
 
     return `
@@ -770,7 +770,7 @@ function renderStories() {
   }
   html += storiesData.map(s => `
     <div class="story-item" onclick="openFullscreen('${s.image}')">
-      <div class="story-avatar-wrap"><div class="story-avatar-inner"><img src="${s.image}" /></div></div>
+      <div class="story-avatar-wrap"><div class="story-avatar-inner"><img src="${s.image}" onerror="this.src='https://via.placeholder.com/400?text=Xato'" /></div></div>
       <span class="story-label">${s.name}</span>
     </div>
   `).join('');
@@ -819,7 +819,7 @@ function renderProfile() {
         <div class="empty-state" style="padding:30px 0;"><i data-lucide="bookmark" style="width:30px;height:30px;"></i><div style="font-size:13px;">Hozircha saqlangan postlar yo'q.</div></div>
       ` : 
       `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        ${saved.map(p=>`<div style="aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);cursor:pointer;" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);"><img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>`).join('')}
+        ${saved.map(p=>`<div style="aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);cursor:pointer;" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);"><img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato'" /></div>`).join('')}
       </div>`}
     </div>
   `;
@@ -855,7 +855,7 @@ function renderImagePreviewGrid() {
   const grid = document.getElementById('imagePreviewGrid');
   grid.innerHTML = uploadedImages.map((src, idx) => `
     <div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);position:relative;">
-      <img src="${src}" style="width:100%;height:100%;object-fit:cover;" />
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato+Link'" />
       <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="removeUploadedImage(${idx})"><i data-lucide="x" style="width:12px;height:12px;"></i></div>
     </div>
   `).join('');
@@ -868,6 +868,7 @@ function addImageFromUrl() {
   uploadedImages.push(url);
   document.getElementById('postImageUrl').value = '';
   renderImagePreviewGrid();
+  showToast("URL orqali rasm qo'shildi!");
 }
 
 function handleImageUpload(e) {
@@ -910,7 +911,7 @@ function renderAdminPosts() {
   list.innerHTML = postsData.map(p => `
     <div style="display:flex;gap:12px;padding:12px;background:var(--bg-glass);border-radius:16px;margin-bottom:8px;border:1px solid var(--border-glass);">
       <div style="width:60px;height:60px;border-radius:10px;overflow:hidden;position:relative;">
-        <img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;"/>
+        <img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato'" />
         ${p.pinned ? `<div style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border-radius:50%;padding:2px;"><i data-lucide="pin" style="width:12px;color:var(--accent-gold);"></i></div>` : ''}
       </div>
       <div style="flex:1;">
@@ -968,7 +969,7 @@ function renderAdminStoriesList() {
   document.getElementById('adminStoriesList').innerHTML = storiesData.map((s) => `
     <div style="width:80px;text-align:center;">
       <div style="width:80px;height:120px;border-radius:12px;overflow:hidden;position:relative;">
-        <img src="${s.image}" style="width:100%;height:100%;object-fit:cover;"/>
+        <img src="${s.image}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato'" />
         <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.5);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="deleteStory(${s.id})"><i data-lucide="x" style="width:14px;"></i></div>
       </div>
       <div style="font-size:11px;margin-top:4px;">${s.name}</div>
@@ -1049,7 +1050,7 @@ function onSearch(q) {
 
   document.getElementById('searchResults').innerHTML = res.map(p => `
     <div style="padding:16px;border-bottom:1px solid var(--border-glass);display:flex;gap:12px;align-items:center;cursor:pointer;" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth', block:'center'})}, 300);">
-      <img src="${p.images[0]}" style="width:50px;height:50px;border-radius:10px;object-fit:cover;" />
+      <img src="${p.images[0]}" style="width:50px;height:50px;border-radius:10px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato'" />
       <div>
         <div style="font-weight:700;">${p.title}</div>
         <div style="font-size:12px;color:var(--accent);font-weight:600;">${p.price || ''}</div>
