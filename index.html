@@ -1,1095 +1,2379 @@
 <!DOCTYPE html>
-<html lang="uz" class="dark">
+<html lang="uz" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <!-- iOS uchun maxsus meta teglar -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>iOS 26 Premium Admin</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#000000" />
+  <title>LUXE SHOP — Premium Mini App</title>
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'sans-serif'] },
-                    colors: {
-                        ios: {
-                            bg: '#000000',
-                            surface: '#1C1C1E',
-                            surface2: '#2C2C2E',
-                            blue: '#0A84FF',
-                            green: '#30D158',
-                            red: '#FF453A',
-                            orange: '#FF9F0A',
-                            purple: '#BF5AF2',
-                            gray: '#8E8E93',
-                            border: 'rgba(255, 255, 255, 0.15)'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <style>
-        body {
-            background-color: #000000;
-            background-image: 
-                radial-gradient(circle at 0% 0%, rgba(10, 132, 255, 0.15), transparent 40%),
-                radial-gradient(circle at 100% 100%, rgba(191, 90, 242, 0.15), transparent 40%);
-            color: #FFFFFF;
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
-        }
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-        /* iOS Smooth Scrollbar */
-        ::-webkit-scrollbar { width: 4px; height: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-        /* iOS 26 Glassmorphism Effect */
-        .glass-panel {
-            background: rgba(28, 28, 30, 0.65);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-        }
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=SF+Pro+Display:wght@300;400;600;700&display=swap" rel="stylesheet" />
 
-        .glass-btn {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-        }
-        .glass-btn:active { transform: scale(0.96); opacity: 0.8; }
+  <style>
+    :root {
+      --bg-primary: #000000;
+      --bg-secondary: #0a0a0f;
+      --bg-card: rgba(255,255,255,0.04);
+      --bg-glass: rgba(255,255,255,0.06);
+      --bg-glass-strong: rgba(255,255,255,0.10);
+      --border-glass: rgba(255,255,255,0.10);
+      --border-glass-strong: rgba(255,255,255,0.18);
+      --text-primary: #ffffff;
+      --text-secondary: rgba(255,255,255,0.60);
+      --text-tertiary: rgba(255,255,255,0.35);
+      --accent: #0A84FF;
+      --accent-pink: #FF375F;
+      --accent-purple: #BF5AF2;
+      --accent-gold: #FFD60A;
+      --accent-green: #30D158;
+      --accent-orange: #FF9F0A;
+      --glow-blue: rgba(10,132,255,0.3);
+      --glow-pink: rgba(255,55,95,0.3);
+      --glow-purple: rgba(191,90,242,0.3);
+      --nav-height: 80px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
 
-        .glass-input {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .glass-input:focus {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: #0A84FF;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
-        }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* Animations */
-        .fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(15px) scale(0.98); }
-            to { opacity: 1; transform: translateY(0) scale(1); }
-        }
+    html, body {
+      margin: 0; padding: 0;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      overflow-x: hidden;
+      overscroll-behavior: none;
+      -webkit-font-smoothing: antialiased;
+    }
 
-        .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes slideUp {
-            from { transform: translateY(100%); }
-            to { transform: translateY(0); }
-        }
+    body { background: radial-gradient(ellipse at top, #0d0d1a 0%, #000000 60%); min-height: 100vh; }
 
-        /* Nav Item Styles */
-        .nav-item {
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .nav-item.active {
-            background: rgba(10, 132, 255, 0.15);
-            color: #0A84FF;
-            font-weight: 600;
-        }
-        .nav-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 10%;
-            height: 80%;
-            width: 4px;
-            background: #0A84FF;
-            border-radius: 0 4px 4px 0;
-        }
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 0; display: none; }
 
-        /* iOS Switch */
-        .ios-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 30px;
-        }
-        .ios-switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #39393D;
-            transition: .4s; border-radius: 34px;
-        }
-        .slider:before {
-            position: absolute; content: "";
-            height: 26px; width: 26px; left: 2px; bottom: 2px;
-            background-color: white; transition: .4s; border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        input:checked + .slider { background-color: #30D158; }
-        input:checked + .slider:before { transform: translateX(20px); }
+    /* ── Glass Morphism ── */
+    .glass {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border: 1px solid var(--border-glass);
+    }
+    .glass-strong {
+      background: var(--bg-glass-strong);
+      backdrop-filter: blur(40px) saturate(200%);
+      -webkit-backdrop-filter: blur(40px) saturate(200%);
+      border: 1px solid var(--border-glass-strong);
+    }
+    .glass-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+      backdrop-filter: blur(30px) saturate(180%);
+      -webkit-backdrop-filter: blur(30px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
 
-        /* Floating Toast */
-        #toast-container { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
-        .toast {
-            background: rgba(28, 28, 30, 0.9); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1); padding: 12px 24px;
-            border-radius: 100px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-            animation: toastUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        @keyframes toastUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .toast.hiding { animation: toastDown 0.3s forwards; }
-        @keyframes toastDown { to { opacity: 0; transform: translateY(20px) scale(0.9); } }
-    </style>
+    /* ── Navigation ── */
+    #bottomNav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(var(--nav-height) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(40px) saturate(200%);
+      -webkit-backdrop-filter: blur(40px) saturate(200%);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: space-around;
+      z-index: 1000;
+      box-shadow: 0 -1px 0 rgba(255,255,255,0.05), 0 -20px 60px rgba(0,0,0,0.5);
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; padding: 8px 16px; border-radius: 16px;
+      cursor: pointer; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      flex: 1; min-width: 0;
+    }
+    .nav-item.active .nav-icon { color: var(--accent); transform: scale(1.1); }
+    .nav-item.active .nav-label { color: var(--accent); }
+    .nav-icon { font-size: 22px; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); color: var(--text-tertiary); }
+    .nav-label { font-size: 10px; font-weight: 600; color: var(--text-tertiary); letter-spacing: 0.3px; transition: color 0.3s; white-space: nowrap; }
+    .nav-item:active { transform: scale(0.92); }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--accent); margin-top: 2px; opacity: 0; transition: opacity 0.3s; }
+    .nav-item.active .nav-dot { opacity: 1; }
+
+    /* ── Screens ── */
+    .screen { display: none; min-height: 100vh; padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px); }
+    .screen.active { display: block; }
+
+    /* ── Stories ── */
+    #storiesRow {
+      display: flex; gap: 12px; padding: 16px 16px 8px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .story-item {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .story-avatar-wrap {
+      width: 66px; height: 66px;
+      border-radius: 50%; padding: 2px;
+      background: linear-gradient(45deg, var(--accent-pink), var(--accent-purple), var(--accent));
+      position: relative;
+    }
+    .story-avatar-wrap.seen { background: rgba(255,255,255,0.15); }
+    .story-avatar-wrap.add-story { background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 2px dashed rgba(255,255,255,0.25); }
+    .story-avatar-inner { width: 100%; height: 100%; border-radius: 50%; background: #1a1a2e; overflow: hidden; }
+    .story-avatar-inner img { width: 100%; height: 100%; object-fit: cover; }
+    .story-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); text-align: center; max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .story-avatar-wrap::after {
+      content: ''; position: absolute; inset: -3px; border-radius: 50%;
+      border: 2px solid transparent;
+      background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box,
+                  linear-gradient(45deg, var(--accent-pink), var(--accent-purple), var(--accent)) border-box;
+    }
+    .story-avatar-wrap.seen::after { background: linear-gradient(var(--bg-primary), var(--bg-primary)) padding-box, rgba(255,255,255,0.2) border-box; }
+    .story-avatar-wrap.add-story::after { display: none; }
+    .add-story-plus {
+      position: absolute; bottom: 0; right: 0; width: 22px; height: 22px;
+      background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: white; z-index: 2; border: 2px solid var(--bg-primary);
+    }
+
+    /* ── Post Card ── */
+    .post-card { margin: 0 0 16px; overflow: hidden; position: relative; }
+    .post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px 10px; }
+    .post-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+      border: 2px solid var(--border-glass-strong); }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .post-user-info { flex: 1; min-width: 0; }
+    .post-username { font-size: 14px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 5px; }
+    .verified-badge { color: var(--accent); font-size: 13px; }
+    .post-time { font-size: 12px; color: var(--text-tertiary); margin-top: 1px; }
+    .post-menu-btn { color: var(--text-secondary); font-size: 20px; padding: 4px; cursor: pointer; }
+    .pinned-badge { background: linear-gradient(135deg, var(--accent-gold), #ff9500);
+      color: #000; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; letter-spacing: 0.5px; }
+
+    /* ── Image Carousel ── */
+    .post-images { position: relative; overflow: hidden; }
+    .carousel-track { display: flex; transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94); }
+    .carousel-slide { flex-shrink: 0; width: 100%; }
+    .carousel-slide img { width: 100%; height: 420px; object-fit: cover; display: block; }
+    .carousel-dots { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; }
+    .carousel-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: all 0.3s; }
+    .carousel-dot.active { background: white; width: 18px; border-radius: 3px; }
+    .carousel-counter {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
+      color: white; font-size: 12px; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px;
+    }
+
+    /* ── Product Info ── */
+    .product-info { padding: 14px 16px 10px; }
+    .product-title { font-size: 18px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; letter-spacing: -0.3px; }
+    .product-desc { font-size: 14px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
+    .product-price { font-size: 24px; font-weight: 900; background: linear-gradient(135deg, #0A84FF, #BF5AF2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .product-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .product-tag { background: rgba(10,132,255,0.15); border: 1px solid rgba(10,132,255,0.25); color: var(--accent); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+    /* ── Post Actions ── */
+    .post-actions { display: flex; align-items: center; gap: 0; padding: 8px 12px 6px; }
+    .action-btn {
+      display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 14px;
+      cursor: pointer; transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      font-size: 13px; font-weight: 600; color: var(--text-secondary);
+      user-select: none;
+    }
+    .action-btn:active { transform: scale(0.9); }
+    .action-btn .icon { font-size: 22px; transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    .action-btn.liked .icon { color: var(--accent-pink); }
+    .action-btn.liked .count { color: var(--accent-pink); }
+    .action-btn:hover .icon { transform: scale(1.15); }
+    .action-sep { flex: 1; }
+    .views-count { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-tertiary); padding: 0 4px; }
+
+    /* ── Contact Admin ── */
+    .contact-admin-btn {
+      margin: 4px 16px 14px;
+      background: linear-gradient(135deg, rgba(10,132,255,0.2), rgba(191,90,242,0.2));
+      border: 1px solid rgba(10,132,255,0.3);
+      border-radius: 16px; padding: 13px 16px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .contact-admin-btn:active { transform: scale(0.97); opacity: 0.8; }
+    .contact-admin-btn .tg-icon { font-size: 22px; }
+    .contact-admin-btn .text { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .contact-admin-btn .sub { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+    /* ── Comments Sheet ── */
+    .bottom-sheet {
+      position: fixed; inset: 0; z-index: 2000;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .bottom-sheet.open { opacity: 1; pointer-events: all; }
+    .sheet-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); }
+    .sheet-content {
+      position: relative; border-radius: 24px 24px 0 0;
+      background: #0d0d1a; border: 1px solid rgba(255,255,255,0.10);
+      border-bottom: none; max-height: 85vh;
+      display: flex; flex-direction: column;
+      transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.25,0.46,0.45,0.94);
+      box-shadow: 0 -20px 80px rgba(0,0,0,0.8);
+    }
+    .bottom-sheet.open .sheet-content { transform: translateY(0); }
+    .sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin: 12px auto; }
+    .sheet-title { font-size: 16px; font-weight: 700; text-align: center; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .comments-list { flex: 1; overflow-y: auto; padding: 12px 16px; display: flex; flex-direction: column; gap: 16px; }
+    .comment-item { display: flex; gap: 10px; }
+    .comment-avatar { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-glass); }
+    .comment-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .comment-body { flex: 1; }
+    .comment-author { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+    .comment-text { font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
+    .comment-actions { display: flex; gap: 12px; margin-top: 6px; }
+    .comment-time { font-size: 11px; color: var(--text-tertiary); }
+    .comment-like { font-size: 11px; color: var(--text-tertiary); cursor: pointer; display: flex; align-items: center; gap: 3px; }
+    .comment-input-area {
+      display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-bottom: calc(12px + var(--safe-bottom));
+    }
+    .comment-input {
+      flex: 1; background: var(--bg-glass); border: 1px solid var(--border-glass);
+      border-radius: 22px; padding: 10px 16px; color: var(--text-primary);
+      font-size: 14px; outline: none; font-family: inherit;
+    }
+    .comment-input::placeholder { color: var(--text-tertiary); }
+    .send-btn {
+      width: 40px; height: 40px; border-radius: 50%; background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+    }
+    .send-btn:active { transform: scale(0.9); }
+    .send-btn svg { width: 18px; height: 18px; fill: white; }
+
+    /* ── Fullscreen Image ── */
+    #fullscreenViewer {
+      position: fixed; inset: 0; z-index: 3000;
+      background: rgba(0,0,0,0.95); backdrop-filter: blur(20px);
+      display: none; flex-direction: column; justify-content: center; align-items: center;
+    }
+    #fullscreenViewer.open { display: flex; }
+    #fullscreenViewer img { max-width: 100%; max-height: 100vh; object-fit: contain; }
+    #fullscreenClose { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px;
+      background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; }
+
+    /* ── Stories Viewer ── */
+    #storiesViewer {
+      position: fixed; inset: 0; z-index: 3000;
+      background: #000;
+      display: none; flex-direction: column;
+    }
+    #storiesViewer.open { display: flex; }
+    .story-progress-bars { display: flex; gap: 4px; padding: 12px 12px 0; }
+    .story-progress-bar { flex: 1; height: 2px; background: rgba(255,255,255,0.3); border-radius: 1px; overflow: hidden; }
+    .story-progress-fill { height: 100%; background: white; width: 0%; transition: none; border-radius: 1px; }
+    .story-content { flex: 1; position: relative; }
+    .story-content img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+    .story-header { position: absolute; top: 0; left: 0; right: 0; padding: 16px; display: flex; align-items: center; gap: 10px; z-index: 1; background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent); }
+    .story-close { position: absolute; top: 16px; right: 16px; font-size: 24px; cursor: pointer; z-index: 2; }
+    .story-cta { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); }
+    .story-link-btn { background: white; color: #000; font-size: 14px; font-weight: 700; padding: 12px 32px; border-radius: 30px; cursor: pointer; white-space: nowrap; }
+
+    /* ── Loading ── */
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ── Heart Animation ── */
+    .heart-burst {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 10;
+    }
+    .heart-burst-icon { font-size: 80px; animation: heartBurst 0.8s cubic-bezier(0.17,0.89,0.32,1.49) forwards; opacity: 0; }
+    @keyframes heartBurst { 0%{transform:scale(0);opacity:0} 30%{opacity:1} 60%{transform:scale(1.3);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+
+    /* ── Admin Panel ── */
+    #adminPanel { display: none; position: fixed; inset: 0; z-index: 5000; background: #000; overflow-y: auto; }
+    #adminPanel.open { display: block; }
+    .admin-header { background: linear-gradient(135deg, rgba(10,132,255,0.2), rgba(191,90,242,0.2)); border-bottom: 1px solid rgba(255,255,255,0.10); padding: 16px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(20px); }
+    .admin-back { width: 38px; height: 38px; background: var(--bg-glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; flex-shrink: 0; }
+    .admin-title { font-size: 20px; font-weight: 800; }
+    .admin-subtitle { font-size: 13px; color: var(--text-secondary); }
+    .admin-tabs { display: flex; gap: 8px; padding: 12px 16px; overflow-x: auto; scrollbar-width: none; }
+    .admin-tab { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.25s; background: var(--bg-glass); color: var(--text-secondary); border: 1px solid var(--border-glass); }
+    .admin-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+    .admin-section { display: none; padding: 8px 16px 100px; }
+    .admin-section.active { display: block; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat-card { border-radius: 20px; padding: 16px; position: relative; overflow: hidden; }
+    .stat-card::before { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; border-radius: 50%; opacity: 0.15; }
+    .stat-card.blue { background: linear-gradient(135deg, rgba(10,132,255,0.2), rgba(10,132,255,0.05)); border: 1px solid rgba(10,132,255,0.25); }
+    .stat-card.blue::before { background: var(--accent); }
+    .stat-card.pink { background: linear-gradient(135deg, rgba(255,55,95,0.2), rgba(255,55,95,0.05)); border: 1px solid rgba(255,55,95,0.25); }
+    .stat-card.purple { background: linear-gradient(135deg, rgba(191,90,242,0.2), rgba(191,90,242,0.05)); border: 1px solid rgba(191,90,242,0.25); }
+    .stat-card.gold { background: linear-gradient(135deg, rgba(255,214,10,0.2), rgba(255,214,10,0.05)); border: 1px solid rgba(255,214,10,0.25); }
+    .stat-card.green { background: linear-gradient(135deg, rgba(48,209,88,0.2), rgba(48,209,88,0.05)); border: 1px solid rgba(48,209,88,0.25); }
+    .stat-card.orange { background: linear-gradient(135deg, rgba(255,159,10,0.2), rgba(255,159,10,0.05)); border: 1px solid rgba(255,159,10,0.25); }
+    .stat-num { font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+    .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; font-weight: 500; }
+    .stat-icon { font-size: 28px; margin-bottom: 8px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; letter-spacing: 0.3px; text-transform: uppercase; }
+    .form-input, .form-textarea, .form-select {
+      width: 100%; background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 14px;
+      padding: 12px 16px; color: var(--text-primary); font-size: 15px; outline: none; font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); }
+    .form-textarea { resize: vertical; min-height: 100px; }
+    .form-select { appearance: none; cursor: pointer; }
+    .btn-primary {
+      width: 100%; background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+      color: white; font-size: 16px; font-weight: 700; padding: 16px; border-radius: 16px;
+      border: none; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;
+    }
+    .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+    .btn-secondary {
+      background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-primary);
+      font-size: 14px; font-weight: 600; padding: 10px 18px; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-danger { background: rgba(255,55,95,0.15); border: 1px solid rgba(255,55,95,0.3); color: var(--accent-pink); font-size: 14px; font-weight: 600; padding: 8px 14px; border-radius: 12px; cursor: pointer; }
+    .upload-area {
+      border: 2px dashed rgba(255,255,255,0.15); border-radius: 20px; padding: 32px 16px;
+      text-align: center; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden;
+    }
+    .upload-area:hover, .upload-area.drag-over { border-color: var(--accent); background: rgba(10,132,255,0.05); }
+    .upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .image-preview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+    .image-preview-item { position: relative; aspect-ratio: 1; border-radius: 12px; overflow: hidden; }
+    .image-preview-item img { width: 100%; height: 100%; object-fit: cover; }
+    .image-preview-remove { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+    .post-list-item { display: flex; gap: 12px; padding: 12px; border-radius: 18px; background: var(--bg-glass); border: 1px solid var(--border-glass); margin-bottom: 10px; }
+    .post-list-thumb { width: 60px; height: 60px; border-radius: 12px; overflow: hidden; flex-shrink: 0; background: rgba(255,255,255,0.05); }
+    .post-list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .post-list-info { flex: 1; min-width: 0; }
+    .post-list-title { font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .post-list-meta { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; display: flex; gap: 10px; }
+    .post-list-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .activity-item { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .activity-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .activity-text { font-size: 13px; color: var(--text-secondary); flex: 1; }
+    .activity-time { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+    .ai-btn { background: linear-gradient(135deg, rgba(191,90,242,0.2), rgba(10,132,255,0.2)); border: 1px solid rgba(191,90,242,0.3); color: var(--accent-purple); font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.2s; }
+    .ai-btn:active { transform: scale(0.95); }
+    .section-header { font-size: 18px; font-weight: 800; margin-bottom: 14px; margin-top: 4px; letter-spacing: -0.3px; }
+
+    /* ── Search ── */
+    .search-bar { position: relative; margin: 8px 16px 16px; }
+    .search-bar input { width: 100%; background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 16px; padding: 12px 16px 12px 44px; color: var(--text-primary); font-size: 15px; outline: none; font-family: inherit; }
+    .search-bar input::placeholder { color: var(--text-tertiary); }
+    .search-bar .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-tertiary); }
+
+    /* ── Top header ── */
+    #appHeader {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(30px) saturate(200%);
+      -webkit-backdrop-filter: blur(30px) saturate(200%);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding: 12px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .app-logo { font-size: 22px; font-weight: 900; letter-spacing: -1px; background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .app-logo span { background: linear-gradient(135deg, var(--accent), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header-actions { display: flex; gap: 8px; }
+    .header-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; transition: all 0.2s; }
+    .header-btn:active { transform: scale(0.92); }
+
+    /* ── Toast ── */
+    #toast { position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-20px); z-index: 9999; background: rgba(48,209,88,0.9); backdrop-filter: blur(20px); color: white; font-size: 14px; font-weight: 600; padding: 12px 24px; border-radius: 30px; opacity: 0; transition: all 0.4s; pointer-events: none; white-space: nowrap; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.error { background: rgba(255,55,95,0.9); }
+    #toast.info { background: rgba(10,132,255,0.9); }
+
+    /* ── Profile Screen ── */
+    .profile-cover { height: 200px; position: relative; overflow: hidden; }
+    .profile-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, transparent 40%, var(--bg-primary)); }
+    .profile-avatar-wrap { margin-top: -40px; margin-left: 20px; position: relative; z-index: 1; }
+    .profile-avatar { width: 84px; height: 84px; border-radius: 50%; overflow: hidden; border: 3px solid var(--bg-primary); }
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-info { padding: 10px 20px 16px; }
+    .profile-name { font-size: 22px; font-weight: 800; }
+    .profile-username { font-size: 14px; color: var(--text-secondary); margin-top: 2px; }
+    .profile-bio { font-size: 14px; color: var(--text-secondary); margin-top: 8px; line-height: 1.5; }
+    .profile-stats { display: flex; gap: 0; margin-top: 14px; }
+    .profile-stat { flex: 1; text-align: center; }
+    .profile-stat-num { font-size: 20px; font-weight: 800; }
+    .profile-stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+    .profile-stat + .profile-stat { border-left: 1px solid rgba(255,255,255,0.08); }
+
+    /* ── Notify Badge ── */
+    .notif-badge { position: absolute; top: -4px; right: -4px; width: 16px; height: 16px; background: var(--accent-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: white; border: 2px solid var(--bg-primary); }
+
+    /* ── Animations ── */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
+    .scale-in { animation: scaleIn 0.3s ease forwards; }
+    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); animation: pulse 2s infinite; }
+
+    /* ── User list ── */
+    .user-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .user-item-avatar { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; flex-shrink: 0; background: var(--bg-glass); display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .user-item-name { font-size: 15px; font-weight: 600; }
+    .user-item-username { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+    /* Category pills */
+    .category-pill { padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.25s; white-space: nowrap; background: var(--bg-glass); color: var(--text-secondary); border: 1px solid var(--border-glass); }
+    .category-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* Floating add button */
+    #fabBtn { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px); right: 20px; width: 54px; height: 54px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-purple)); box-shadow: 0 8px 24px rgba(10,132,255,0.4), 0 2px 8px rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; z-index: 500; transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+    #fabBtn:active { transform: scale(0.9); }
+    #fabBtn.visible { display: flex; }
+
+    /* Notification banner */
+    .notif-banner { margin: 8px 16px; border-radius: 18px; padding: 14px; display: flex; align-items: center; gap: 12px; animation: fadeInUp 0.4s ease; }
+    .notif-banner.new-post { background: linear-gradient(135deg, rgba(48,209,88,0.15), rgba(48,209,88,0.05)); border: 1px solid rgba(48,209,88,0.25); }
+    .notif-banner-icon { font-size: 24px; }
+    .notif-banner-text { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+    .notif-banner-close { margin-left: auto; font-size: 16px; cursor: pointer; color: var(--text-tertiary); }
+
+    /* Swipe to like overlay */
+    .double-tap-overlay { position: absolute; inset: 0; z-index: 5; }
+
+    /* Range input */
+    input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.15); outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 2px 8px rgba(10,132,255,0.4); }
+
+    /* Toggle */
+    .toggle { position: relative; width: 50px; height: 28px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.15); border-radius: 14px; cursor: pointer; transition: all 0.3s; }
+    .toggle-slider::before { content: ''; position: absolute; height: 22px; width: 22px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: all 0.3s; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+    .toggle input:checked + .toggle-slider { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+    /* Gradient backgrounds for sections */
+    .section-bg-1 { background: radial-gradient(ellipse at top left, rgba(10,132,255,0.08) 0%, transparent 60%); }
+    .section-bg-2 { background: radial-gradient(ellipse at top right, rgba(191,90,242,0.08) 0%, transparent 60%); }
+
+    /* Loading spinner */
+    .spinner { width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 40px auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Price badge */
+    .price-badge { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(10,132,255,0.2), rgba(191,90,242,0.15)); border: 1px solid rgba(10,132,255,0.3); border-radius: 20px; padding: 6px 14px; }
+
+    /* Trending badge */
+    .trending-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,55,95,0.15); border: 1px solid rgba(255,55,95,0.3); color: var(--accent-pink); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+
+    /* Animated border */
+    @keyframes borderRotate { from{--angle:0deg} to{--angle:360deg} }
+    @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+
+    /* Spacer for header */
+    .content-start { padding-top: 8px; }
+
+    /* Mobile optimizations */
+    @media (max-width: 420px) {
+      .stat-num { font-size: 26px; }
+      .product-title { font-size: 16px; }
+      .product-price { font-size: 20px; }
+    }
+  </style>
 </head>
-<body class="h-screen w-screen flex antialiased">
+<body>
 
-    <div id="access-screen" class="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-700">
-        <div class="glass-panel p-10 rounded-[40px] text-center max-w-sm mx-4 w-full border border-white/10 shadow-2xl relative overflow-hidden">
-            <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none"></div>
-            <div class="w-24 h-24 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-md relative z-10">
-                <i class="fab fa-apple text-5xl text-white"></i>
-            </div>
-            <h2 class="text-2xl font-semibold mb-2 tracking-tight">Tizimga kirish...</h2>
-            <p class="text-gray-400 mb-8 text-sm">Face ID / Touch ID orqali tasdiqlanmoqda</p>
-            <div class="w-full bg-gray-800 rounded-full h-1.5 overflow-hidden">
-                <div class="bg-blue-500 h-1.5 rounded-full w-2/3 animate-pulse"></div>
-            </div>
-        </div>
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Loading Screen -->
+<div id="loadingScreen" style="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+  <div style="font-size:48px;">✦</div>
+  <div style="font-size:28px;font-weight:900;letter-spacing:-1px;">LUXE SHOP</div>
+  <div style="color:rgba(255,255,255,0.4);font-size:14px;font-weight:500;">Premium Mini App</div>
+  <div class="spinner" style="margin-top:8px;"></div>
+</div>
+
+<!-- App Header (Feed screen) -->
+<div id="appHeader" style="display:none;">
+  <div class="app-logo">LUXE<span>✦</span>SHOP</div>
+  <div class="header-actions">
+    <div class="header-btn" onclick="openSearch()" title="Search">🔍</div>
+    <div class="header-btn" style="position:relative;" onclick="showNotifications()">
+      🔔
+      <div class="notif-badge" id="notifBadge">3</div>
+    </div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div id="app" style="display:none;">
+
+  <!-- FEED SCREEN -->
+  <div id="screen-feed" class="screen active">
+    <!-- Stories -->
+    <div id="storiesRow">
+      <!-- Injected by JS -->
     </div>
 
-    <nav class="w-72 glass-panel h-[calc(100vh-32px)] m-4 rounded-[32px] flex flex-col transition-transform duration-300 fixed md:relative z-40 -translate-x-full md:translate-x-0" id="sidebar">
-        <div class="p-8 flex items-center justify-between border-b border-white/5">
-            <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-[16px] bg-gradient-to-br from-gray-800 to-black border border-white/10 flex items-center justify-center shadow-lg">
-                    <i class="fab fa-apple text-2xl text-white"></i>
-                </div>
-                <div>
-                    <h1 class="font-semibold text-xl tracking-tight">Admin OS</h1>
-                    <p class="text-[11px] text-gray-500 font-medium uppercase tracking-widest">Version 2.6</p>
-                </div>
-            </div>
-            <button class="md:hidden text-gray-400 p-2" onclick="toggleSidebar()"><i class="fas fa-times text-xl"></i></button>
-        </div>
-
-        <div class="flex-1 overflow-y-auto py-6 px-4 space-y-1.5">
-            <a href="#" onclick="switchTab('dashboard')" class="nav-item active flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-border-all w-5 text-lg"></i> <span class="font-medium text-[15px]">Asosiy Panel</span>
-            </a>
-            <a href="#" onclick="switchTab('posts')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-images w-5 text-lg"></i> <span class="font-medium text-[15px]">Postlar</span>
-            </a>
-            <a href="#" onclick="switchTab('stories')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-circle-notch w-5 text-lg"></i> <span class="font-medium text-[15px]">Hikoyalar</span>
-            </a>
-            <a href="#" onclick="switchTab('comments')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-comment-dots w-5 text-lg"></i> <span class="font-medium text-[15px]">Izohlar</span>
-            </a>
-            <a href="#" onclick="switchTab('users')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-user-friends w-5 text-lg"></i> <span class="font-medium text-[15px]">Mijozlar</span>
-            </a>
-            <div class="pt-6 pb-2 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Premium Tools</div>
-            <a href="#" onclick="switchTab('ai-tools')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white group">
-                <i class="fas fa-wand-magic-sparkles w-5 text-lg group-hover:text-purple-400 transition-colors"></i> 
-                <span class="font-medium text-[15px] bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400">AI Yordamchi</span>
-            </a>
-            <a href="#" onclick="switchTab('analytics')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-chart-pie w-5 text-lg"></i> <span class="font-medium text-[15px]">Analitika</span>
-            </a>
-            <a href="#" onclick="switchTab('notifications')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-paper-plane w-5 text-lg"></i> <span class="font-medium text-[15px]">Xabarnomalar</span>
-            </a>
-            <a href="#" onclick="switchTab('settings')" class="nav-item flex items-center gap-4 px-4 py-3.5 rounded-2xl text-gray-400 hover:text-white">
-                <i class="fas fa-gear w-5 text-lg"></i> <span class="font-medium text-[15px]">Sozlamalar</span>
-            </a>
-        </div>
-        
-        <div class="p-6 border-t border-white/5">
-            <div class="flex items-center gap-3 p-3 rounded-[20px] bg-white/5 backdrop-blur-md border border-white/10 hover:bg-white/10 transition cursor-pointer">
-                <div class="relative">
-                    <img src="https://placehold.co/100x100/1C1C1E/FFFFFF?text=AD" class="w-10 h-10 rounded-full border border-white/20" alt="Admin">
-                    <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
-                </div>
-                <div class="overflow-hidden">
-                    <p class="text-[14px] font-semibold truncate" id="admin-name">iOS Admin</p>
-                    <p class="text-[11px] text-gray-400">Super Administrator</p>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <main class="flex-1 h-screen overflow-hidden flex flex-col relative w-full">
-        <!-- Topbar -->
-        <header class="h-24 px-4 md:px-8 flex items-center justify-between z-10 glass-panel mx-4 mt-4 rounded-[32px]">
-            <div class="flex items-center gap-4">
-                <button class="md:hidden w-10 h-10 rounded-full glass-btn flex items-center justify-center text-white" onclick="toggleSidebar()">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h2 id="page-title" class="text-2xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">Asosiy Panel</h2>
-            </div>
-            <div class="flex items-center gap-4">
-                <div class="relative hidden lg:block">
-                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-                    <input type="text" placeholder="Qidirish (Cmd+K)" class="glass-input pl-10 pr-4 py-2.5 rounded-full w-72 text-sm focus:w-96 font-medium">
-                </div>
-                <button class="w-11 h-11 rounded-full glass-btn flex items-center justify-center relative group">
-                    <i class="fas fa-bell text-lg group-hover:text-blue-400 transition-colors"></i>
-                    <span class="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#1C1C1E]"></span>
-                </button>
-            </div>
-        </header>
-
-        <!-- Dynamic Content Scrollable Area -->
-        <div class="flex-1 overflow-y-auto p-4 md:p-8 pb-32 scroll-smooth" id="content-area">
-            
-            <div id="view-dashboard" class="fade-in space-y-8">
-                <!-- Stats Grid -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <div class="glass-panel p-6 rounded-[32px] relative overflow-hidden group">
-                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-12 h-12 rounded-[18px] bg-blue-500/20 flex items-center justify-center text-blue-400 shadow-[0_0_15px_rgba(10,132,255,0.2)]">
-                                <i class="fas fa-layer-group text-xl"></i>
-                            </div>
-                            <span class="text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1"><i class="fas fa-arrow-up"></i> 12%</span>
-                        </div>
-                        <p class="text-gray-400 text-[13px] font-medium mb-1">Jami Postlar</p>
-                        <h3 class="text-4xl font-bold tracking-tight">1,248</h3>
-                    </div>
-                    
-                    <div class="glass-panel p-6 rounded-[32px] relative overflow-hidden group">
-                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-12 h-12 rounded-[18px] bg-purple-500/20 flex items-center justify-center text-purple-400 shadow-[0_0_15px_rgba(191,90,242,0.2)]">
-                                <i class="fas fa-eye text-xl"></i>
-                            </div>
-                            <span class="text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1"><i class="fas fa-arrow-up"></i> 24%</span>
-                        </div>
-                        <p class="text-gray-400 text-[13px] font-medium mb-1">Ko'rishlar (Oy)</p>
-                        <h3 class="text-4xl font-bold tracking-tight">45.2K</h3>
-                    </div>
-
-                    <div class="glass-panel p-6 rounded-[32px] relative overflow-hidden group">
-                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-green-500/20 rounded-full blur-3xl group-hover:bg-green-500/30 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-12 h-12 rounded-[18px] bg-green-500/20 flex items-center justify-center text-green-400 shadow-[0_0_15px_rgba(48,209,88,0.2)]">
-                                <i class="fas fa-users text-xl"></i>
-                            </div>
-                            <span class="text-green-400 bg-green-400/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1"><i class="fas fa-arrow-up"></i> 8%</span>
-                        </div>
-                        <p class="text-gray-400 text-[13px] font-medium mb-1">Faol Foydalanuvchilar</p>
-                        <h3 class="text-4xl font-bold tracking-tight">8,902</h3>
-                    </div>
-
-                    <div class="glass-panel p-6 rounded-[32px] relative overflow-hidden group">
-                        <div class="absolute -right-8 -top-8 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-all duration-500"></div>
-                        <div class="flex justify-between items-start mb-6">
-                            <div class="w-12 h-12 rounded-[18px] bg-orange-500/20 flex items-center justify-center text-orange-400 shadow-[0_0_15px_rgba(255,159,10,0.2)]">
-                                <i class="fas fa-comment-dots text-xl"></i>
-                            </div>
-                            <span class="text-red-400 bg-red-400/10 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1"><i class="fas fa-arrow-down"></i> 2%</span>
-                        </div>
-                        <p class="text-gray-400 text-[13px] font-medium mb-1">Yangi Izohlar</p>
-                        <h3 class="text-4xl font-bold tracking-tight">3,421</h3>
-                    </div>
-                </div>
-
-                <!-- Trending & Activity -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 glass-panel p-8 rounded-[32px]">
-                        <div class="flex justify-between items-center mb-6">
-                            <h3 class="text-xl font-bold tracking-tight">Trenddagi Postlar</h3>
-                            <button class="text-sm text-blue-400 hover:text-blue-300 font-medium">Barchasi</button>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="text-gray-500 text-xs uppercase tracking-wider border-b border-white/10">
-                                        <th class="pb-3 font-semibold">Mahsulot</th>
-                                        <th class="pb-3 font-semibold">Ko'rishlar</th>
-                                        <th class="pb-3 font-semibold">Layklar</th>
-                                        <th class="pb-3 font-semibold">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-sm">
-                                    <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                        <td class="py-4 flex items-center gap-3">
-                                            <img src="https://placehold.co/100x100/1a1a2e/ffffff?text=iPhone" class="w-10 h-10 rounded-xl object-cover">
-                                            <span class="font-medium">iPhone 15 Pro Max 256GB</span>
-                                        </td>
-                                        <td class="py-4">12.5K</td>
-                                        <td class="py-4 text-gray-300">1.2K</td>
-                                        <td class="py-4"><span class="px-2 py-1 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium">Faol</span></td>
-                                    </tr>
-                                    <tr class="hover:bg-white/5 transition-colors">
-                                        <td class="py-4 flex items-center gap-3">
-                                            <img src="https://placehold.co/100x100/1a1a2e/ffffff?text=MacBook" class="w-10 h-10 rounded-xl object-cover">
-                                            <span class="font-medium">MacBook Pro M3 Max</span>
-                                        </td>
-                                        <td class="py-4">8.2K</td>
-                                        <td class="py-4 text-gray-300">856</td>
-                                        <td class="py-4"><span class="px-2 py-1 rounded-lg bg-yellow-500/20 text-yellow-400 text-xs font-medium">Kutilmoqda</span></td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <div class="glass-panel p-8 rounded-[32px]">
-                        <h3 class="text-xl font-bold mb-6 tracking-tight">So'nggi Harakatlar</h3>
-                        <div class="space-y-5 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-white/10 before:to-transparent">
-                            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#1C1C1E] bg-blue-500 text-white shadow shrink-0 z-10">
-                                    <i class="fas fa-plus text-xs"></i>
-                                </div>
-                                <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl glass-input ml-4 md:ml-0 md:mr-4">
-                                    <p class="font-bold text-sm">Yangi post</p>
-                                    <p class="text-xs text-gray-400 mt-1">Admin yangi mahsulot qo'shdi</p>
-                                </div>
-                            </div>
-                            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-full border-4 border-[#1C1C1E] bg-green-500 text-white shadow shrink-0 z-10 md:ml-4">
-                                    <i class="fas fa-user text-xs"></i>
-                                </div>
-                                <div class="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl glass-input ml-4 md:ml-4">
-                                    <p class="font-bold text-sm">Yangi a'zo</p>
-                                    <p class="text-xs text-gray-400 mt-1">@azimov_uz kirdi</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-posts" class="fade-in hidden space-y-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 glass-panel p-4 md:p-6 rounded-[32px]">
-                    <div class="flex flex-wrap gap-3 w-full sm:w-auto">
-                        <select class="glass-input rounded-xl px-4 py-2.5 text-sm font-medium w-full sm:w-auto appearance-none">
-                            <option value="all">Barcha toifalar</option>
-                            <option value="tech">Texnika</option>
-                            <option value="clothes">Kiyimlar</option>
-                        </select>
-                        <select class="glass-input rounded-xl px-4 py-2.5 text-sm font-medium w-full sm:w-auto appearance-none">
-                            <option value="new">Eng so'nggi</option>
-                            <option value="popular">Mashhurlar</option>
-                        </select>
-                    </div>
-                    <button onclick="openModal('postModal')" class="w-full sm:w-auto bg-white text-black px-6 py-2.5 rounded-full font-bold hover:bg-gray-200 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:scale-105 active:scale-95 duration-200">
-                        <i class="fas fa-plus"></i> Yangi Post
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6" id="posts-container">
-                    <!-- Sample Post -->
-                    <div class="glass-panel rounded-[28px] overflow-hidden group hover:border-white/20 transition-colors">
-                        <div class="h-56 relative overflow-hidden">
-                            <img src="https://placehold.co/600x400/1a1a2e/ffffff?text=Product+Image" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="Post">
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-                            <div class="absolute top-4 right-4 flex gap-2">
-                                <span class="bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold text-white shadow-lg"><i class="fas fa-thumbtack text-blue-400 mr-1"></i> Qadalgan</span>
-                            </div>
-                            <div class="absolute bottom-4 left-4">
-                                <span class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm font-bold shadow-lg">$1,299</span>
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="font-bold text-lg mb-2 truncate">Premium Mahsulot Nomi</h3>
-                            <p class="text-sm text-gray-400 mb-4 line-clamp-2">Bu yerda mahsulot haqida qisqacha ma'lumot yoziladi. AI orqali ham generatsiya qilish mumkin.</p>
-                            
-                            <div class="flex items-center justify-between mb-5 border-t border-white/10 pt-4">
-                                <div class="flex gap-4 text-sm text-gray-400 font-medium">
-                                    <span class="flex items-center gap-1.5"><i class="fas fa-eye"></i> 1.2K</span>
-                                    <span class="flex items-center gap-1.5"><i class="fas fa-heart text-red-400"></i> 340</span>
-                                </div>
-                                <span class="text-xs text-gray-500 bg-white/5 px-2 py-1 rounded-md">12 Okt, 2023</span>
-                            </div>
-                            
-                            <div class="flex gap-3">
-                                <button class="flex-1 glass-btn py-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition"><i class="fas fa-pen mr-1"></i> Tahrirlash</button>
-                                <button class="w-12 glass-btn py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/20 transition flex items-center justify-center"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-stories" class="fade-in hidden space-y-6">
-                <div class="glass-panel p-6 rounded-[32px] text-center mb-6 border border-dashed border-white/20 hover:border-purple-400 hover:bg-purple-500/5 transition-all cursor-pointer" onclick="openModal('storyModal')">
-                    <div class="w-16 h-16 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center mx-auto mb-3 text-2xl">
-                        <i class="fas fa-plus"></i>
-                    </div>
-                    <h3 class="font-bold text-lg">Yangi Hikoya (Story) Qo'shish</h3>
-                    <p class="text-sm text-gray-400">Rasm yoki video yuklang (24 soat faol bo'ladi)</p>
-                </div>
-
-                <h3 class="text-xl font-bold tracking-tight mb-4">Faol Hikoyalar</h3>
-                <div class="flex overflow-x-auto gap-4 pb-4 snap-x">
-                    <!-- Story Item -->
-                    <div class="w-32 flex-shrink-0 snap-start">
-                        <div class="w-full aspect-[9/16] rounded-2xl p-[3px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-500 relative cursor-pointer group">
-                            <div class="w-full h-full bg-black rounded-[14px] overflow-hidden relative">
-                                <img src="https://placehold.co/400x700/1a1a2e/ffffff?text=Story+1" class="w-full h-full object-cover opacity-80 group-hover:scale-110 transition-transform duration-500">
-                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                    <button class="w-8 h-8 rounded-full bg-white/20 backdrop-blur text-white flex items-center justify-center hover:bg-red-500 transition"><i class="fas fa-trash text-xs"></i></button>
-                                </div>
-                            </div>
-                            <div class="absolute bottom-2 left-2 right-2 text-center">
-                                <span class="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-[10px] font-medium block truncate">Aksiya</span>
-                            </div>
-                        </div>
-                        <p class="text-center text-xs text-gray-400 mt-2 font-medium"><i class="fas fa-eye text-[10px]"></i> 450</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-comments" class="fade-in hidden space-y-6">
-                <div class="glass-panel rounded-[32px] overflow-hidden">
-                    <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
-                        <h3 class="font-bold text-lg">So'nggi Izohlar</h3>
-                        <button class="text-sm bg-red-500/20 text-red-400 px-4 py-2 rounded-xl font-medium hover:bg-red-500/30 transition">Spamlarni Tozalash</button>
-                    </div>
-                    <div class="divide-y divide-white/5">
-                        <!-- Comment Item -->
-                        <div class="p-6 flex gap-4 hover:bg-white/[0.02] transition-colors">
-                            <img src="https://placehold.co/100/1a1a2e/ffffff?text=U" class="w-12 h-12 rounded-full border border-white/10">
-                            <div class="flex-1">
-                                <div class="flex justify-between items-start mb-1">
-                                    <div>
-                                        <h4 class="font-bold text-sm">Alisher Valiyev <span class="text-gray-500 text-xs font-normal ml-2">@alisher_v</span></h4>
-                                        <p class="text-xs text-gray-400">Post: <a href="#" class="text-blue-400 hover:underline">iPhone 15 Pro...</a> • 2 soat oldin</p>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button class="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-white/10 transition" title="Qadash"><i class="fas fa-thumbtack"></i></button>
-                                        <button class="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-500/20 transition" title="O'chirish"><i class="fas fa-trash"></i></button>
-                                        <button class="text-orange-400 hover:text-orange-300 p-2 rounded-lg hover:bg-orange-500/20 transition" title="Bloklash"><i class="fas fa-ban"></i></button>
-                                    </div>
-                                </div>
-                                <p class="text-sm mt-2 text-gray-200">Assalomu alaykum, narxi qancha ekan? Va qayerdan olsak bo'ladi?</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-users" class="fade-in hidden space-y-6">
-                <div class="flex flex-wrap gap-4 glass-panel p-4 rounded-[24px]">
-                    <div class="flex-1 relative min-w-[200px]">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" placeholder="ID, Username yoki Ism..." class="glass-input pl-10 pr-4 py-2.5 rounded-xl w-full text-sm">
-                    </div>
-                    <select class="glass-input rounded-xl px-4 py-2.5 text-sm w-full sm:w-auto">
-                        <option value="all">Barcha foydalanuvchilar</option>
-                        <option value="active">Eng faol</option>
-                        <option value="blocked">Bloklanganlar</option>
-                    </select>
-                </div>
-
-                <div class="glass-panel rounded-[32px] overflow-hidden">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="bg-white/5 text-gray-400 text-xs uppercase tracking-wider">
-                                <th class="p-4 font-semibold">Foydalanuvchi</th>
-                                <th class="p-4 font-semibold">Faollik</th>
-                                <th class="p-4 font-semibold hidden md:table-cell">Qo'shilgan sana</th>
-                                <th class="p-4 font-semibold text-right">Amallar</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-sm divide-y divide-white/5">
-                            <!-- User row -->
-                            <tr class="hover:bg-white/[0.02] transition">
-                                <td class="p-4 flex items-center gap-3">
-                                    <div class="relative">
-                                        <img src="https://placehold.co/100/1a1a2e/ffffff?text=B" class="w-10 h-10 rounded-full">
-                                        <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border border-black"></div>
-                                    </div>
-                                    <div>
-                                        <p class="font-bold">Botir Qodirov</p>
-                                        <p class="text-xs text-gray-500">ID: 987654321</p>
-                                    </div>
-                                </td>
-                                <td class="p-4">
-                                    <div class="flex items-center gap-1.5 text-xs text-gray-300">
-                                        <i class="fas fa-comment text-gray-500"></i> 12 ta
-                                        <i class="fas fa-heart text-red-400 ml-2"></i> 45 ta
-                                    </div>
-                                </td>
-                                <td class="p-4 text-gray-400 text-xs hidden md:table-cell">10 Okt, 2023</td>
-                                <td class="p-4 text-right">
-                                    <button class="text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-blue-500/20 transition" title="Xabar yozish"><i class="fas fa-paper-plane"></i></button>
-                                    <button class="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-500/20 transition ml-1" title="Bloklash"><i class="fas fa-ban"></i></button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div id="view-ai-tools" class="fade-in hidden space-y-6">
-                <div class="glass-panel p-8 rounded-[32px] relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-blue-600/10 pointer-events-none"></div>
-                    <div class="flex items-center gap-4 mb-8 relative z-10">
-                        <div class="w-14 h-14 rounded-[20px] bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-2xl shadow-lg shadow-purple-500/30">
-                            <i class="fas fa-wand-magic-sparkles"></i>
-                        </div>
-                        <div>
-                            <h2 class="text-2xl font-bold tracking-tight">AI Yordamchi</h2>
-                            <p class="text-sm text-gray-400">Postlar uchun sarlavha, matn va heshteglarni avtomatik yarating.</p>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
-                        <div class="space-y-5">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-300 mb-2">Mavzu yoki Mahsulot</label>
-                                <input type="text" id="ai-topic" placeholder="Masalan: Qishki kurtka, Yangi yil aksiyasi..." class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-[15px] shadow-inner">
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <button onclick="generateAIText('caption')" class="bg-white text-black py-3.5 rounded-2xl font-bold transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98]">
-                                    <i class="fas fa-pen-nib mr-2"></i> Matn
-                                </button>
-                                <button onclick="generateAIText('hashtags')" class="glass-btn hover:bg-white/10 py-3.5 rounded-2xl font-bold transition-all">
-                                    <i class="fas fa-hashtag mr-2"></i> Heshteg
-                                </button>
-                                <button onclick="generateAIText('title')" class="col-span-2 glass-btn hover:bg-white/10 py-3.5 rounded-2xl font-bold transition-all border-purple-500/30 hover:border-purple-500 text-purple-300">
-                                    <i class="fas fa-lightbulb mr-2"></i> Sarlavha o'ylab topish
-                                </button>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2 flex justify-between">
-                                AI Natijasi
-                                <span class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded uppercase tracking-wider">GPT-4 Turbo</span>
-                            </label>
-                            <div class="relative h-[calc(100%-28px)]">
-                                <textarea id="ai-result" class="w-full h-full min-h-[200px] glass-input px-5 py-4 rounded-2xl text-white resize-none font-medium leading-relaxed" placeholder="Natija bu yerda ko'rinadi..."></textarea>
-                                <button onclick="copyAIText()" class="absolute bottom-4 right-4 w-10 h-10 rounded-xl bg-white text-black flex items-center justify-center hover:bg-gray-200 transition-all shadow-lg active:scale-90">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-analytics" class="fade-in hidden space-y-6">
-                <div class="glass-panel p-6 rounded-[32px]">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-xl font-bold">O'sish Statistikasi</h3>
-                        <select class="glass-input rounded-xl px-3 py-1.5 text-sm">
-                            <option>Oxirgi 7 kun</option>
-                            <option>Oxirgi 30 kun</option>
-                        </select>
-                    </div>
-                    <div class="h-80 w-full relative">
-                        <canvas id="analyticsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div id="view-notifications" class="fade-in hidden space-y-6">
-                <div class="glass-panel p-8 rounded-[32px] max-w-3xl mx-auto border border-blue-500/20 relative overflow-hidden">
-                    <div class="absolute -right-20 -top-20 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl"></div>
-                    <h2 class="text-2xl font-bold mb-2 tracking-tight">Push Xabarnoma</h2>
-                    <p class="text-sm text-gray-400 mb-8">Barcha Telegram bot foydalanuvchilariga xabar yuborish.</p>
-                    
-                    <form id="notification-form" onsubmit="sendNotification(event)" class="space-y-5 relative z-10">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2">Auditoriya</label>
-                            <select class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm">
-                                <option value="all">Barcha foydalanuvchilar (8,902)</option>
-                                <option value="active">Faqat faollar (2,104)</option>
-                                <option value="test">Test (Faqat adminga)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2">Rasm URL (ixtiyoriy)</label>
-                            <input type="url" placeholder="https://..." class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2">Xabar matni</label>
-                            <textarea id="notif-text" required rows="5" class="w-full glass-input px-5 py-4 rounded-2xl text-white resize-none text-sm leading-relaxed" placeholder="Yangi aksiyamiz haqida batafsil..."></textarea>
-                        </div>
-                        <div class="flex items-center justify-between glass-input p-4 rounded-2xl">
-                            <div>
-                                <p class="font-medium text-sm">Xabarni qadash (Pin)</p>
-                                <p class="text-xs text-gray-400">Botda xabar tepada qadab qo'yiladi</p>
-                            </div>
-                            <label class="ios-switch">
-                                <input type="checkbox" id="notif-pin">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_30px_rgba(37,99,235,0.6)] active:scale-[0.98] text-lg">
-                            <i class="fas fa-paper-plane mr-2"></i> Yuborish
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div id="view-settings" class="fade-in hidden space-y-6 pb-10">
-                <div class="max-w-4xl mx-auto space-y-6">
-                    <div class="glass-panel p-6 sm:p-8 rounded-[32px]">
-                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fas fa-sliders text-blue-400"></i> Umumiy Sozlamalar</h3>
-                        <div class="space-y-2">
-                            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                                <div>
-                                    <p class="font-semibold">Bot holati</p>
-                                    <p class="text-xs text-gray-400 mt-0.5">Botni vaqtincha to'xtatish (Texnik ishlar)</p>
-                                </div>
-                                <label class="ios-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                                <div>
-                                    <p class="font-semibold">Izohlar ruxsati</p>
-                                    <p class="text-xs text-gray-400 mt-0.5">Yangi postlarga izoh yozishga ruxsat berish</p>
-                                </div>
-                                <label class="ios-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                                <div>
-                                    <p class="font-semibold">Avtomatik O'chirish</p>
-                                    <p class="text-xs text-gray-400 mt-0.5">24 soatdan so'ng hikoyalarni arxivlash</p>
-                                </div>
-                                <label class="ios-switch">
-                                    <input type="checkbox" checked>
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-panel p-6 sm:p-8 rounded-[32px]">
-                        <h3 class="text-xl font-bold mb-6 flex items-center gap-2"><i class="fas fa-palette text-purple-400"></i> Dizayn & Mavzu</h3>
-                        <div class="flex flex-wrap gap-4">
-                            <button class="w-32 h-32 rounded-[24px] border-2 border-blue-500 bg-[#000000] flex flex-col items-center justify-center relative overflow-hidden group">
-                                <div class="w-full h-8 bg-[#1C1C1E] absolute top-0"></div>
-                                <span class="text-sm font-bold z-10 mt-4">Dark iOS</span>
-                                <div class="absolute bottom-2 right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-lg"><i class="fas fa-check"></i></div>
-                            </button>
-                            <button class="w-32 h-32 rounded-[24px] border border-white/10 bg-[#f5f5f7] text-black flex flex-col items-center justify-center relative opacity-50 cursor-not-allowed transition hover:opacity-70" title="Tez kunda">
-                                <div class="w-full h-8 bg-white absolute top-0 border-b border-gray-200"></div>
-                                <span class="text-sm font-bold z-10 mt-4 text-gray-500">Light iOS</span>
-                                <span class="absolute bottom-2 text-[9px] font-bold text-gray-400 uppercase">Tez Kunda</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </main>
-
-    <div id="postModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-300">
-        <div class="glass-panel w-full max-w-4xl rounded-[40px] max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300 shadow-2xl border border-white/20 mx-4" id="postModalContent">
-            
-            <!-- Modal Header -->
-            <div class="px-8 py-5 flex justify-between items-center border-b border-white/10 shrink-0 bg-white/5 rounded-t-[40px]">
-                <h3 class="text-2xl font-bold tracking-tight">Yangi Post Yaratish</h3>
-                <button onclick="closeModal('postModal')" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white hover:text-black transition-colors flex items-center justify-center text-sm font-bold">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <!-- Modal Body (Scrollable) -->
-            <div class="p-8 overflow-y-auto space-y-8 flex-1 scroll-smooth">
-                <!-- Image Upload Area -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-300 mb-3">Mediya (Rasm/Video)</label>
-                    <div class="border-2 border-dashed border-white/20 rounded-[32px] p-10 text-center hover:border-blue-500 hover:bg-blue-500/5 transition-all cursor-pointer relative group bg-white/[0.02]" id="drop-zone">
-                        <input type="file" multiple accept="image/*,video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFiles(this.files)">
-                        <div class="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center mb-4 text-3xl text-gray-400 group-hover:text-blue-400 group-hover:scale-110 transition-all shadow-inner">
-                            <i class="fas fa-cloud-arrow-up"></i>
-                        </div>
-                        <p class="font-bold text-lg mb-1">Fayllarni bu yerga tashlang</p>
-                        <p class="text-sm text-gray-500">yoki tanlash uchun bosing (Max 50MB)</p>
-                    </div>
-                    <div id="image-preview" class="flex gap-4 overflow-x-auto mt-4 py-2 hidden snap-x"></div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2">Sarlavha</label>
-                            <input type="text" placeholder="Post nomi..." class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm font-medium">
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-300 mb-2">Narxi ($ yoki UZS)</label>
-                                <input type="number" placeholder="0" class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm font-medium">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-300 mb-2">Kategoriya</label>
-                                <select class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm font-medium">
-                                    <option class="bg-gray-900">Texnika</option>
-                                    <option class="bg-gray-900">Kiyim</option>
-                                    <option class="bg-gray-900">Aksiya</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-300 mb-2">Link (Tugma uchun)</label>
-                            <input type="url" placeholder="https://t.me/..." class="w-full glass-input px-5 py-3.5 rounded-2xl text-white text-sm font-medium">
-                        </div>
-                    </div>
-                    
-                    <div class="space-y-5">
-                        <div class="h-full flex flex-col">
-                            <label class="block text-sm font-semibold text-gray-300 mb-2 flex justify-between items-center">
-                                To'liq matn
-                                <button onclick="switchTab('ai-tools'); closeModal('postModal')" class="text-xs bg-purple-500/20 text-purple-400 px-2 py-1 rounded-md hover:bg-purple-500/40 transition"><i class="fas fa-wand-magic-sparkles"></i> AI bilan yozish</button>
-                            </label>
-                            <textarea rows="7" placeholder="Mahsulot haqida batafsil ma'lumot, xususiyatlari va yetkazib berish shartlari..." class="w-full flex-1 glass-input px-5 py-4 rounded-2xl text-white resize-none text-sm font-medium leading-relaxed"></textarea>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="flex items-center justify-between glass-panel p-5 rounded-[24px] border border-orange-500/20 bg-orange-500/5">
-                    <div>
-                        <span class="text-base font-bold text-orange-400">Qoralama (Draft) rejim</span>
-                        <p class="text-xs text-gray-400 mt-1">Post saqlanadi, lekin hozircha mijozlarga ko'rinmaydi</p>
-                    </div>
-                    <label class="ios-switch">
-                        <input type="checkbox">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="px-8 py-5 border-t border-white/10 shrink-0 bg-white/5 rounded-b-[40px] flex justify-end gap-4">
-                <button onclick="closeModal('postModal')" class="px-8 py-3.5 rounded-full glass-btn hover:bg-white/10 font-bold transition-colors text-sm">Bekor qilish</button>
-                <button onclick="savePost()" class="px-8 py-3.5 rounded-full bg-white text-black font-bold hover:bg-gray-200 transition-colors shadow-[0_0_20px_rgba(255,255,255,0.4)] hover:scale-105 active:scale-95 text-sm">Nashr Qilish <i class="fas fa-paper-plane ml-1"></i></button>
-            </div>
-        </div>
+    <!-- Category Pills -->
+    <div style="display:flex;gap:8px;padding:4px 16px 12px;overflow-x:auto;scrollbar-width:none;">
+      <div class="category-pill active" onclick="filterPosts('all',this)">✦ All</div>
+      <div class="category-pill" onclick="filterPosts('products',this)">📦 Products</div>
+      <div class="category-pill" onclick="filterPosts('news',this)">📰 News</div>
+      <div class="category-pill" onclick="filterPosts('media',this)">🎬 Media</div>
+      <div class="category-pill" onclick="filterPosts('shop',this)">🛍️ Shop</div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toast-container"></div>
+    <!-- Posts Feed -->
+    <div id="postsFeed">
+      <div class="spinner"></div>
+    </div>
+  </div>
 
-    <script>
-        // Use 'var' to prevent redeclaration errors in hot-reload environments
-        var CONFIG = {
-            ADMIN_ID: 8544023815,
-            BOT_TOKEN: '8818083852:AAHX3Ls0njibepUOkB1roHZCKp3ajjIB00M',
-            SUPABASE_URL: 'https://qbradygfmigzlqxrvhyz.supabase.co',
-            SUPABASE_KEY: 'sb_publishable_rBGM_8MqI4giNF1QuY6cVA_yjebMuz5'
-        };
+  <!-- SEARCH SCREEN -->
+  <div id="screen-search" class="screen">
+    <div style="padding:16px 0 8px;">
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Qidirish..." id="searchInput" oninput="onSearch(this.value)" />
+      </div>
+    </div>
+    <div style="padding:0 16px 8px;"><div class="section-header" style="color:var(--text-secondary);font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">Trending</div></div>
+    <div id="searchResults"></div>
+  </div>
 
-        var tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-        // Theme parameters from Telegram
-        if (tg.colorScheme === 'light') {
-            // Can implement light mode toggle here based on TG settings
-        }
+  <!-- NOTIFICATIONS SCREEN -->
+  <div id="screen-notifications" class="screen">
+    <div style="padding:20px 16px 12px;"><div class="section-header">Bildirishnomalar</div></div>
+    <div id="notifList" style="padding:0 16px;"></div>
+  </div>
 
-        var supabase;
-        try {
-            supabase = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
-        } catch (e) {
-            console.error("Supabase Error:", e);
-        }
+  <!-- PROFILE SCREEN -->
+  <div id="screen-profile" class="screen">
+    <div id="profileContent"></div>
+  </div>
 
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', () => {
-            const user = tg.initDataUnsafe?.user;
-            const accessScreen = document.getElementById('access-screen');
-            
-            // Xavfsizlik tekshiruvi
-            if (!user || user.id !== CONFIG.ADMIN_ID) {
-                // Testing purposes if opened outside TG
-                if(!user) {
-                   showToast("Telegramdan tashqarida ishlamoqda (Test rejim).", "warning");
-                   setTimeout(() => { accessScreen.style.opacity = '0'; setTimeout(()=>accessScreen.remove(), 700); }, 1500);
-                } else {
-                    accessScreen.innerHTML = `
-                        <div class="glass-panel p-10 rounded-[40px] text-center max-w-sm mx-4 text-red-500 border-red-500/30">
-                            <i class="fas fa-lock text-6xl mb-6 drop-shadow-[0_0_15px_rgba(255,69,58,0.5)]"></i>
-                            <h2 class="text-2xl font-bold mb-2">Kirish Taqiqlangan</h2>
-                            <p class="text-sm text-gray-400">Sizda ushbu tizimga kirish huquqi yo'q.</p>
-                        </div>
-                    `;
-                }
-            } else {
-                document.getElementById('admin-name').innerText = user.first_name || 'Admin';
-                setTimeout(() => {
-                    accessScreen.style.opacity = '0';
-                    setTimeout(()=>accessScreen.remove(), 700);
-                }, 2000); // Fake loading for premium feel
-            }
-        });
+</div>
 
-        // Tab Management
-        function switchTab(tabId) {
-            const views = ['dashboard', 'posts', 'stories', 'comments', 'users', 'ai-tools', 'analytics', 'notifications', 'settings'];
-            views.forEach(v => {
-                const el = document.getElementById(`view-${v}`);
-                if(el) el.classList.add('hidden');
-            });
-            
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+<!-- Bottom Navigation -->
+<div id="bottomNav" style="display:none;">
+  <div class="nav-item active" onclick="switchScreen('feed',this)" id="nav-feed">
+    <div class="nav-icon">🏠</div>
+    <div class="nav-label">Asosiy</div>
+    <div class="nav-dot"></div>
+  </div>
+  <div class="nav-item" onclick="switchScreen('search',this)" id="nav-search">
+    <div class="nav-icon">🔍</div>
+    <div class="nav-label">Qidirish</div>
+    <div class="nav-dot"></div>
+  </div>
+  <div class="nav-item" onclick="switchScreen('notifications',this)" id="nav-notifications" style="position:relative;">
+    <div class="nav-icon">🔔</div>
+    <div class="nav-label">Yangiliklar</div>
+    <div class="nav-dot"></div>
+  </div>
+  <div class="nav-item" onclick="switchScreen('profile',this)" id="nav-profile">
+    <div class="nav-icon">👤</div>
+    <div class="nav-label">Profil</div>
+    <div class="nav-dot"></div>
+  </div>
+</div>
 
-            const titleMap = {
-                'dashboard': 'Asosiy Panel',
-                'posts': 'Postlar Boshqaruvi',
-                'stories': 'Hikoyalar (Stories)',
-                'comments': 'Izohlar Boshqaruvi',
-                'users': 'Foydalanuvchilar',
-                'ai-tools': 'AI Yordamchi',
-                'analytics': 'Analitika & O\'sish',
-                'notifications': 'Push Xabarnomalar',
-                'settings': 'Tizim Sozlamalari'
-            };
-            document.getElementById('page-title').innerText = titleMap[tabId] || 'Admin';
+<!-- FAB (Admin) -->
+<div id="fabBtn" onclick="openAdminPanel()">➕</div>
 
-            const targetView = document.getElementById(`view-${tabId}`);
-            if (targetView) {
-                targetView.classList.remove('hidden');
-                if(tabId === 'analytics') initAnalyticsChart();
-            }
+<!-- Comments Sheet -->
+<div id="commentsSheet" class="bottom-sheet">
+  <div class="sheet-backdrop" onclick="closeComments()"></div>
+  <div class="sheet-content">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Izohlar <span id="commentCount" style="color:var(--text-tertiary);font-weight:400;"></span></div>
+    <div class="comments-list" id="commentsList"></div>
+    <div class="comment-input-area">
+      <div id="commentUserAvatar" style="width:34px;height:34px;border-radius:50%;background:var(--bg-glass);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
+      <input class="comment-input" id="commentInput" type="text" placeholder="Izoh yozish..." />
+      <div class="send-btn" onclick="submitComment()">
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
 
-            if(window.innerWidth < 768) toggleSidebar();
-        }
+<!-- Stories Viewer -->
+<div id="storiesViewer">
+  <div class="story-progress-bars" id="storyProgressBars"></div>
+  <div class="story-content" id="storyContent">
+    <img id="storyImage" src="" alt="" />
+    <div class="story-header">
+      <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);overflow:hidden;"><img id="storyAuthorAvatar" src="" style="width:100%;height:100%;object-fit:cover;" /></div>
+      <div>
+        <div style="font-size:14px;font-weight:700;" id="storyAuthorName">Admin</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);" id="storyTime">Hozir</div>
+      </div>
+      <div class="story-close" onclick="closeStories()">✕</div>
+    </div>
+    <div class="story-cta" id="storyCTA" style="display:none;">
+      <div class="story-link-btn" id="storyLinkBtn">Ko'rish →</div>
+    </div>
+  </div>
+</div>
 
-        // Sidebar Mobile
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            if(sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.remove('-translate-x-full');
-                // Optional: Add overlay for mobile
-            } else {
-                sidebar.classList.add('-translate-x-full');
-            }
-        }
+<!-- Fullscreen Image Viewer -->
+<div id="fullscreenViewer">
+  <div id="fullscreenClose" onclick="closeFullscreen()">✕</div>
+  <img id="fullscreenImg" src="" alt="" onclick="closeFullscreen()" />
+</div>
 
-        // Modal Logic
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            if(!modal) return;
-            const content = modal.querySelector('div');
-            modal.classList.remove('pointer-events-none', 'opacity-0');
-            content.classList.remove('scale-95');
-            content.classList.add('scale-100');
-            tg.HapticFeedback.impactOccurred('medium');
-        }
+<!-- Heart Burst (double tap) -->
+<div id="heartBurst" style="display:none;position:fixed;inset:0;z-index:999;pointer-events:none;display:flex;align-items:center;justify-content:center;">
+  <div id="heartIcon" style="font-size:90px;opacity:0;transform:scale(0);transition:all 0.1s;">❤️</div>
+</div>
 
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            if(!modal) return;
-            const content = modal.querySelector('div');
-            content.classList.remove('scale-100');
-            content.classList.add('scale-95');
-            modal.classList.add('opacity-0');
-            setTimeout(() => modal.classList.add('pointer-events-none'), 300);
-        }
+<!-- ═══════════════════════════════════════════════
+     ADMIN PANEL
+═══════════════════════════════════════════════ -->
+<div id="adminPanel">
+  <div class="admin-header">
+    <div class="admin-back" onclick="closeAdminPanel()">←</div>
+    <div>
+      <div class="admin-title">Admin Panel</div>
+      <div class="admin-subtitle">LUXE SHOP Management</div>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+      <div class="online-dot"></div>
+      <span style="font-size:12px;color:var(--accent-green);">Online</span>
+    </div>
+  </div>
 
-        // Toast System
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            
-            let icon = type === 'success' ? '<i class="fas fa-check-circle text-green-500 text-xl"></i>' : 
-                       type === 'warning' ? '<i class="fas fa-exclamation-triangle text-orange-500 text-xl"></i>' :
-                       '<i class="fas fa-info-circle text-blue-500 text-xl"></i>';
+  <!-- Admin Tabs -->
+  <div class="admin-tabs">
+    <div class="admin-tab active" onclick="switchAdminTab('dashboard',this)">📊 Dashboard</div>
+    <div class="admin-tab" onclick="switchAdminTab('create',this)">✏️ Post yaratish</div>
+    <div class="admin-tab" onclick="switchAdminTab('posts',this)">📋 Postlar</div>
+    <div class="admin-tab" onclick="switchAdminTab('stories',this)">⭕ Stories</div>
+    <div class="admin-tab" onclick="switchAdminTab('users',this)">👥 Foydalanuvchilar</div>
+    <div class="admin-tab" onclick="switchAdminTab('notify',this)">📣 Xabarnoma</div>
+    <div class="admin-tab" onclick="switchAdminTab('ai',this)">🤖 AI Tools</div>
+  </div>
 
-            toast.innerHTML = `${icon} <div class="text-[15px] font-semibold">${message}</div>`;
-            container.appendChild(toast);
-            
-            tg.HapticFeedback.notificationOccurred(type === 'success' ? 'success' : 'warning');
+  <!-- DASHBOARD -->
+  <div id="admin-dashboard" class="admin-section active">
+    <div class="section-header">📊 Dashboard</div>
+    <div class="stat-grid">
+      <div class="stat-card blue"><div class="stat-icon">👥</div><div class="stat-num" id="statUsers">0</div><div class="stat-label">Jami foydalanuvchilar</div></div>
+      <div class="stat-card pink"><div class="stat-icon">📝</div><div class="stat-num" id="statPosts">0</div><div class="stat-label">Jami postlar</div></div>
+      <div class="stat-card purple"><div class="stat-icon">❤️</div><div class="stat-num" id="statLikes">0</div><div class="stat-label">Jami likes</div></div>
+      <div class="stat-card gold"><div class="stat-icon">💬</div><div class="stat-num" id="statComments">0</div><div class="stat-label">Jami izohlar</div></div>
+      <div class="stat-card green"><div class="stat-icon">👁️</div><div class="stat-num" id="statViews">0</div><div class="stat-label">Jami ko'rishlar</div></div>
+      <div class="stat-card orange"><div class="stat-icon">🔥</div><div class="stat-num" id="statTrending">0</div><div class="stat-label">Trend postlar</div></div>
+    </div>
 
-            setTimeout(() => {
-                toast.classList.add('hiding');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
+    <div class="section-header" style="margin-top:4px;">🕐 So'nggi faollik</div>
+    <div id="activityList"></div>
 
-        // Analytics Chart (Chart.js)
-        var analyticsChartInst = null;
-        function initAnalyticsChart() {
-            const ctx = document.getElementById('analyticsChart');
-            if(!ctx) return;
-            
-            if(analyticsChartInst) analyticsChartInst.destroy();
+    <div class="section-header" style="margin-top:16px;">🏆 Top Mahsulotlar</div>
+    <div id="trendingList"></div>
+  </div>
 
-            Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
-            Chart.defaults.font.family = '-apple-system, SF Pro Display, sans-serif';
+  <!-- CREATE POST -->
+  <div id="admin-create" class="admin-section">
+    <div class="section-header">✏️ Yangi Post Yaratish</div>
 
-            analyticsChartInst = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['1', '2', '3', '4', '5', '6', '7'],
-                    datasets: [
-                        {
-                            label: 'Aktiv Foydalanuvchilar',
-                            data: [300, 450, 400, 600, 550, 800, 950],
-                            borderColor: '#0A84FF',
-                            backgroundColor: 'rgba(10, 132, 255, 0.1)',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#000',
-                            pointBorderColor: '#0A84FF',
-                            pointRadius: 4
-                        },
-                        {
-                            label: 'Yangi obunachilar',
-                            data: [100, 150, 120, 200, 180, 250, 300],
-                            borderColor: '#BF5AF2',
-                            backgroundColor: 'rgba(191, 90, 242, 0.1)',
-                            borderWidth: 3,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#000',
-                            pointBorderColor: '#BF5AF2',
-                            pointRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { 
-                        legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } }
-                    },
-                    scales: {
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)', drawBorder: false }, beginAtZero: true },
-                        x: { grid: { display: false, drawBorder: false } }
-                    },
-                    interaction: { mode: 'index', intersect: false }
-                }
-            });
-        }
+    <div class="form-group">
+      <label class="form-label">Post turi</label>
+      <select class="form-select" id="postType">
+        <option value="product">📦 Mahsulot</option>
+        <option value="news">📰 Yangilik</option>
+        <option value="media">🎬 Media</option>
+        <option value="shop">🛍️ Do'kon</option>
+      </select>
+    </div>
 
-        // AI Tools Logic
-        function generateAIText(type) {
-            const topic = document.getElementById('ai-topic').value;
-            const resBox = document.getElementById('ai-result');
-            
-            if(!topic) {
-                showToast("Iltimos, mavzuni kiriting!", "warning");
-                return;
-            }
+    <div class="form-group">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Sarlavha</label>
+        <div class="ai-btn" onclick="aiGenerate('title')">🤖 AI Sarlavha</div>
+      </div>
+      <input class="form-input" id="postTitle" type="text" placeholder="Mahsulot nomi..." />
+    </div>
 
-            resBox.value = "AI o'ylamoqda... 🤖\nMa'lumotlar analiz qilinmoqda...";
-            
-            setTimeout(() => {
-                tg.HapticFeedback.impactOccurred('light');
-                if(type === 'caption') {
-                    resBox.value = `🌟 Diqqat, yangilik!\n\nSiz kutgan o'sha "${topic}" endi bizning do'konda mavjud! ✨\n\n🎯 Nega aynan bu?\n• Yuqori sifat kafolati\n• Premium dizayn va qulaylik\n• Hamyonbop narx\n\n🚚 O'zbekiston bo'ylab yetkazib berish xizmati mavjud.\n\n👇 Buyurtma berish uchun quyidagi tugmani bosing!`;
-                } else if (type === 'hashtags') {
-                    const words = topic.split(' ').map(w => w.replace(/[^a-zA-Z0-9]/g, ''));
-                    resBox.value = `#${words.join(' #')} #uzbekistan #tashkent #skidka #yangi #trend #tavsiya #premium #sifat #${words[0]}uz`;
-                } else if (type === 'title') {
-                    resBox.value = `1. 🔥 Shok narxda: Premium ${topic}\n2. ✨ Yangi kolleksiya: ${topic} endi sotuvda\n3. 🎯 Siz qidirgan ${topic} - Faqat bizda!`;
-                }
-                showToast("AI muvaffaqiyatli yaratdi");
-            }, 1500);
-        }
+    <div class="form-group">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Tavsif</label>
+        <div class="ai-btn" onclick="aiGenerate('desc')">🤖 AI Tavsif</div>
+      </div>
+      <textarea class="form-textarea" id="postDesc" placeholder="Mahsulot haqida batafsil..."></textarea>
+    </div>
 
-        function copyAIText() {
-            const text = document.getElementById('ai-result').value;
-            if(!text) return;
-            
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            document.body.appendChild(textArea);
-            textArea.select();
-            try {
-                document.execCommand('copy');
-                showToast("Nusxa olindi!");
-            } catch (err) {
-                showToast("Xatolik yuz berdi", "warning");
-            }
-            document.body.removeChild(textArea);
-        }
+    <div class="form-group">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Narx (UZS)</label>
+      </div>
+      <input class="form-input" id="postPrice" type="text" placeholder="masalan: 1,290,000 so'm" />
+    </div>
 
-        // Image Handling
-        function handleFiles(files) {
-            const preview = document.getElementById('image-preview');
-            preview.classList.remove('hidden');
-            
-            Array.from(files).forEach(file => {
-                if(file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const div = document.createElement('div');
-                        div.className = "w-24 h-24 rounded-2xl flex-shrink-0 relative overflow-hidden group snap-start border border-white/20";
-                        div.innerHTML = `
-                            <img src="${e.target.result}" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
-                                <button class="text-white bg-red-500/80 w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-500" onclick="this.parentElement.parentElement.remove()">
-                                    <i class="fas fa-trash text-xs"></i>
-                                </button>
-                            </div>
-                        `;
-                        preview.appendChild(div);
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-            showToast(`${files.length} ta fayl yuklandi`);
-        }
+    <div class="form-group">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <label class="form-label" style="margin:0;">Hashtags</label>
+        <div class="ai-btn" onclick="aiGenerate('tags')">🤖 AI Hashtags</div>
+      </div>
+      <input class="form-input" id="postTags" type="text" placeholder="#mahsulot #trend #yangi" />
+    </div>
 
-        // Notification System
-        async function sendNotification(e) {
-            e.preventDefault();
-            const text = document.getElementById('notif-text').value;
-            const btn = e.target.querySelector('button');
-            const originalHTML = btn.innerHTML;
-            
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Yuborilmoqda...';
-            btn.disabled = true;
-            
-            try {
-                // Backend ga zapros yuborish logikasi (bot orqali yuboriladi odatda)
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                showToast(`Xabar barcha foydalanuvchilarga yuborildi!`);
-                document.getElementById('notif-text').value = '';
-            } catch (err) {
-                showToast("Yuborishda xatolik", "warning");
-            } finally {
-                btn.innerHTML = originalHTML;
-                btn.disabled = false;
-            }
-        }
+    <div class="form-group">
+      <label class="form-label">Rasmlar</label>
+      <div class="upload-area" id="uploadArea">
+        <input type="file" multiple accept="image/*" id="imageUploadInput" onchange="handleImageUpload(event)" />
+        <div style="font-size:40px;margin-bottom:8px;">📷</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text-secondary);">Rasmlarni yuklang</div>
+        <div style="font-size:13px;color:var(--text-tertiary);margin-top:4px;">Drag & Drop yoki bosing</div>
+      </div>
+      <div class="image-preview-grid" id="imagePreviewGrid"></div>
+    </div>
 
-        // Post Saving function
-        function savePost() {
-            tg.HapticFeedback.impactOccurred('heavy');
-            showToast("Serverga saqlanmoqda...", "info");
-            
-            // Supabase saqlash simulyatsiyasi
-            setTimeout(() => {
-                closeModal('postModal');
-                showToast("Post muvaffaqiyatli nashr etildi!", "success");
-            }, 1500);
-        }
+    <div class="form-group">
+      <label class="form-label">Tashqi havola (ixtiyoriy)</label>
+      <input class="form-input" id="postLink" type="url" placeholder="https://..." />
+    </div>
 
-    </script>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div>
+        <div style="font-size:14px;font-weight:600;">Pinlash</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Postni yuqorida ko'rsatish</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="postPinned" /><span class="toggle-slider"></span></label>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+      <div>
+        <div style="font-size:14px;font-weight:600;">Izohlarni yopish</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Foydalanuvchilar izoh yozolmaydi</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="postDisableComments" /><span class="toggle-slider"></span></label>
+    </div>
+
+    <button class="btn-primary" onclick="createPost()">✨ Post Nashr Etish</button>
+    <div style="height:20px;"></div>
+  </div>
+
+  <!-- POSTS MANAGEMENT -->
+  <div id="admin-posts" class="admin-section">
+    <div class="section-header">📋 Postlarni Boshqarish</div>
+    <div class="search-bar" style="margin:0 0 16px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Postlarni qidirish..." id="adminSearchPosts" oninput="filterAdminPosts(this.value)" />
+    </div>
+    <div id="adminPostsList"></div>
+  </div>
+
+  <!-- STORIES MANAGEMENT -->
+  <div id="admin-stories" class="admin-section">
+    <div class="section-header">⭕ Stories Boshqaruvi</div>
+    <div class="form-group">
+      <label class="form-label">Story Nomi</label>
+      <input class="form-input" id="storyName" type="text" placeholder="Story sarlavhasi..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Story Rasm</label>
+      <div class="upload-area">
+        <input type="file" accept="image/*" id="storyImageInput" onchange="handleStoryUpload(event)" />
+        <div style="font-size:40px;margin-bottom:8px;">📸</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text-secondary);">Story rasmini yuklang</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Story Havolasi</label>
+      <input class="form-input" id="storyLink" type="url" placeholder="https://..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Davomiyligi: <span id="storyDurLabel">5</span> soniya</label>
+      <input type="range" min="3" max="15" value="5" id="storyDuration" oninput="document.getElementById('storyDurLabel').textContent=this.value" />
+    </div>
+    <button class="btn-primary" onclick="createStory()">⭕ Story Qo'shish</button>
+
+    <div class="section-header" style="margin-top:24px;">Mavjud Stories</div>
+    <div id="adminStoriesList" style="display:flex;gap:12px;flex-wrap:wrap;"></div>
+  </div>
+
+  <!-- USERS -->
+  <div id="admin-users" class="admin-section">
+    <div class="section-header">👥 Foydalanuvchilar</div>
+    <div class="search-bar" style="margin:0 0 16px;">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Foydalanuvchi qidirish..." id="adminSearchUsers" oninput="filterAdminUsers(this.value)" />
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <div class="stat-card blue" style="flex:1;padding:12px;border-radius:16px;">
+        <div style="font-size:20px;font-weight:800;" id="totalUsersCount">0</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Jami</div>
+      </div>
+      <div class="stat-card green" style="flex:1;padding:12px;border-radius:16px;">
+        <div style="font-size:20px;font-weight:800;" id="onlineUsersCount">0</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Online</div>
+      </div>
+      <div class="stat-card pink" style="flex:1;padding:12px;border-radius:16px;">
+        <div style="font-size:20px;font-weight:800;" id="blockedUsersCount">0</div>
+        <div style="font-size:12px;color:var(--text-tertiary);">Bloklangan</div>
+      </div>
+    </div>
+    <div id="adminUsersList"></div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div id="admin-notify" class="admin-section">
+    <div class="section-header">📣 Xabarnoma Yuborish</div>
+    <div class="form-group">
+      <label class="form-label">Sarlavha</label>
+      <input class="form-input" id="notifTitle" type="text" placeholder="Xabarnoma sarlavhasi..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Xabar</label>
+      <textarea class="form-textarea" id="notifMessage" placeholder="Xabar matni..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tur</label>
+      <select class="form-select" id="notifType">
+        <option value="info">ℹ️ Ma'lumot</option>
+        <option value="product">📦 Yangi Mahsulot</option>
+        <option value="sale">🔥 Chegirma</option>
+        <option value="urgent">🚨 Muhim</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="sendNotification()">📣 Yuborish</button>
+
+    <div class="section-header" style="margin-top:24px;">📬 Yuborilgan Xabarnomalar</div>
+    <div id="sentNotifList"></div>
+  </div>
+
+  <!-- AI TOOLS -->
+  <div id="admin-ai" class="admin-section">
+    <div class="section-header">🤖 AI Tools</div>
+    <div style="background:linear-gradient(135deg,rgba(191,90,242,0.15),rgba(10,132,255,0.1));border:1px solid rgba(191,90,242,0.25);border-radius:20px;padding:16px;margin-bottom:20px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px;">✨ AI Yordamchi</div>
+      <div style="font-size:13px;color:var(--text-secondary);">Mahsulot uchun sarlavha, tavsif va hashtag yaratish</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Mahsulot haqida qisqacha</label>
+      <input class="form-input" id="aiProductInput" type="text" placeholder="masalan: qora rangli iPhone 15 Pro..." />
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+      <button class="ai-btn" style="width:100%;justify-content:center;padding:14px;" onclick="aiGenerate('title-standalone')">✨ Sarlavha Yaratish</button>
+      <button class="ai-btn" style="width:100%;justify-content:center;padding:14px;" onclick="aiGenerate('desc-standalone')">📝 Tavsif Yaratish</button>
+      <button class="ai-btn" style="width:100%;justify-content:center;padding:14px;" onclick="aiGenerate('tags-standalone')">🏷️ Hashtag Yaratish</button>
+      <button class="ai-btn" style="width:100%;justify-content:center;padding:14px;" onclick="aiGenerate('full')">🚀 Barchani Yaratish</button>
+    </div>
+
+    <div id="aiOutput" style="display:none;" class="glass-card" style="border-radius:20px;padding:16px;"></div>
+  </div>
+
+</div>
+
+<!-- ════════════════════════════════════════
+     JAVASCRIPT
+════════════════════════════════════════ -->
+<script>
+/* ═══════════════════════════════════════
+   CONFIG — Edit .env and paste here OR
+   Vercel will inject via env vars
+═══════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL: 'https://qbradygfmigzlqxrvhyz.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_rBGM_8MqI4giNF1QuY6cVA_yjebMuz5',
+  ADMIN_TELEGRAM_ID: '8544023815', // e.g. '123456789'
+  ADMIN_USERNAME: '@yomonboIa',        // without @
+  BOT_USERNAME: '@MMRmobileBot',            // without @
+  APP_URL: window.location.origin,
+};
+
+/* ═══════════════════════════════════════
+   TELEGRAM WEBAPP INIT
+═══════════════════════════════════════ */
+const tg = window.Telegram?.WebApp;
+let tgUser = null;
+
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#000000');
+  tg.setBackgroundColor('#000000');
+  tg.enableClosingConfirmation();
+  tgUser = tg.initDataUnsafe?.user || null;
+}
+
+/* ═══════════════════════════════════════
+   SUPABASE INIT
+═══════════════════════════════════════ */
+let db = null;
+let realtimeChannel = null;
+
+function initSupabase() {
+  if (CONFIG.SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    console.warn('Supabase not configured. Using demo data.');
+    return false;
+  }
+  try {
+    const { createClient } = supabase;
+    db = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    return true;
+  } catch(e) {
+    console.error('Supabase init error:', e);
+    return false;
+  }
+}
+
+/* ═══════════════════════════════════════
+   DEMO DATA
+═══════════════════════════════════════ */
+const DEMO_IMAGES = {
+  posts: [
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800&q=80',
+    'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=800&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=800&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80',
+    'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=800&q=80',
+    'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=800&q=80',
+    'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=800&q=80',
+    'https://images.unsplash.com/photo-1611186871525-6d36aab13527?w=800&q=80',
+    'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80',
+    'https://images.unsplash.com/photo-1484704849700-f032a568e944?w=800&q=80',
+  ],
+  stories: [
+    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80',
+    'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
+    'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&q=80',
+    'https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=400&q=80',
+    'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80',
+  ],
+  avatars: [
+    'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&q=80',
+    'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&q=80',
+    'https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=100&q=80',
+  ]
+};
+
+let demoPosts = [
+  { id: 1, type: 'product', title: 'AirPods Pro 2nd Gen', description: 'Apple\'ning eng zamonaviy simsiz quloqchinlari. Active Noise Cancellation, Spatial Audio va 30 soatlik batareya hayoti.', price: '1,290,000 so\'m', images: [DEMO_IMAGES.posts[0], DEMO_IMAGES.posts[8]], tags: ['#apple', '#airpods', '#tech'], likes: 248, comments: 34, views: 1820, pinned: true, liked: false, saved: false, created_at: '2025-01-15T10:30:00Z', disable_comments: false, link: '' },
+  { id: 2, type: 'news', title: 'iPhone 16 Pro Max — O\'zbekistonda!', description: 'Apple\'ning eng yangi flagmani endi rasman O\'zbekistonda sotuvda. Titanium korpus, A18 Pro chip va 48MP kamera tizimi.', price: '12,500,000 so\'m', images: [DEMO_IMAGES.posts[7]], tags: ['#iphone', '#apple', '#flagship'], likes: 512, comments: 89, views: 4200, pinned: false, liked: false, saved: false, created_at: '2025-01-14T08:00:00Z', disable_comments: false, link: '' },
+  { id: 3, type: 'shop', title: 'Nike Air Max 270 React', description: 'Eng qulay va stilish sport poyafzali. Air cushioning texnologiyasi bilan har bir qadamingizni yengillashtiradi. Barcha o\'lchamlar mavjud.', price: '890,000 so\'m', images: [DEMO_IMAGES.posts[2], DEMO_IMAGES.posts[6], DEMO_IMAGES.posts[3]], tags: ['#nike', '#sneakers', '#sport'], likes: 189, comments: 22, views: 980, pinned: false, liked: false, saved: false, created_at: '2025-01-13T14:20:00Z', disable_comments: false, link: '' },
+  { id: 4, type: 'product', title: 'Samsung Galaxy Watch 6 Classic', description: 'Premium smartwatch rotary bezel bilan. Salomatlik monitoring, GPS tracking va 40 soat batareya. Titanium korpus.', price: '2,450,000 so\'m', images: [DEMO_IMAGES.posts[4]], tags: ['#samsung', '#smartwatch', '#wearable'], likes: 143, comments: 17, views: 750, pinned: false, liked: false, saved: false, created_at: '2025-01-12T09:15:00Z', disable_comments: false, link: '' },
+  { id: 5, type: 'media', title: 'MacBook Air M3 — Yangi Daraja', description: 'Apple Silicon M3 chip bilan MacBook Air yangi imkoniyatlar kashf etmoqda. 18 soatlik batareya, 15.3" Liquid Retina display.', price: '14,900,000 so\'m', images: [DEMO_IMAGES.posts[9], DEMO_IMAGES.posts[5]], tags: ['#macbook', '#apple', '#laptop'], likes: 327, comments: 45, views: 2100, pinned: false, liked: false, saved: false, created_at: '2025-01-11T16:45:00Z', disable_comments: false, link: '' },
+  { id: 6, type: 'product', title: 'Sony WH-1000XM5', description: 'Dunyo\'ning eng yaxshi noise cancelling quloqchinlari. 30 soatlik batareya, 8 mikrofon tizimi va HD Bluetooth.', price: '2,100,000 so\'m', images: [DEMO_IMAGES.posts[1]], tags: ['#sony', '#headphones', '#audio'], likes: 95, comments: 11, views: 620, pinned: false, liked: false, saved: false, created_at: '2025-01-10T12:00:00Z', disable_comments: false, link: '' },
+];
+
+let demoStories = [
+  { id: 1, name: 'Admin', image: DEMO_IMAGES.stories[0], seen: false, link: '', avatar: DEMO_IMAGES.avatars[0], duration: 5 },
+  { id: 2, name: 'Yangi', image: DEMO_IMAGES.stories[1], seen: false, link: '', avatar: DEMO_IMAGES.avatars[1], duration: 5 },
+  { id: 3, name: 'Sale🔥', image: DEMO_IMAGES.stories[2], seen: true, link: '', avatar: DEMO_IMAGES.avatars[2], duration: 5 },
+  { id: 4, name: 'Tech', image: DEMO_IMAGES.stories[3], seen: false, link: '', avatar: DEMO_IMAGES.avatars[0], duration: 5 },
+  { id: 5, name: 'Style', image: DEMO_IMAGES.stories[4], seen: true, link: '', avatar: DEMO_IMAGES.avatars[1], duration: 5 },
+];
+
+let demoComments = {
+  1: [
+    { id: 1, author: 'Jasur Toshmatov', username: 'jasur_t', text: 'Juda zo\'r mahsulot! Men xarid qildim, sifati ajoyib 👌', time: '2 soat oldin', likes: 12, avatar: DEMO_IMAGES.avatars[0] },
+    { id: 2, author: 'Malika Yusupova', username: 'malika_yu', text: 'Narxi biroz qimmat lekin sifatiga arziydi', time: '1 soat oldin', likes: 5, avatar: DEMO_IMAGES.avatars[1] },
+    { id: 3, author: 'Bobur Karimov', username: 'bobur_k', text: 'Rasm ko\'rinib turibdi yaxshi ekan, adminga yozaman 🔥', time: '30 daqiqa oldin', likes: 3, avatar: DEMO_IMAGES.avatars[2] },
+  ]
+};
+
+let demoUsers = [
+  { id: 1, name: 'Jasur Toshmatov', username: 'jasur_t', telegram_id: '111222333', online: true, blocked: false, posts_liked: 15, joined: '2025-01-01' },
+  { id: 2, name: 'Malika Yusupova', username: 'malika_yu', telegram_id: '444555666', online: false, blocked: false, posts_liked: 8, joined: '2025-01-03' },
+  { id: 3, name: 'Bobur Karimov', username: 'bobur_k', telegram_id: '777888999', online: true, blocked: false, posts_liked: 22, joined: '2024-12-28' },
+  { id: 4, name: 'Dilnoza Rakhimova', username: 'dilnoza_r', telegram_id: '101010101', online: false, blocked: true, posts_liked: 3, joined: '2024-12-15' },
+];
+
+let demoNotifications = [
+  { id: 1, type: 'like', text: 'Jasur Toshmatov sizning "AirPods Pro" postingizni yoqtirdi ❤️', time: '5 daqiqa oldin', read: false },
+  { id: 2, type: 'comment', text: 'Malika Yusupova: "Juda zo\'r mahsulot..."', time: '20 daqiqa oldin', read: false },
+  { id: 3, type: 'follow', text: 'Bobur Karimov sizning do\'koningizga obuna bo\'ldi', time: '1 soat oldin', read: false },
+  { id: 4, type: 'view', text: '"iPhone 16 Pro Max" posti 4200 ta ko\'rishga yetdi 🔥', time: '2 soat oldin', read: true },
+  { id: 5, type: 'sale', text: 'Bugun 5 ta mahsulot so\'rovi keldi 📦', time: '3 soat oldin', read: true },
+];
+
+/* ═══════════════════════════════════════
+   STATE
+═══════════════════════════════════════ */
+let currentScreen = 'feed';
+let currentPosts = [...demoPosts];
+let currentFilter = 'all';
+let openPostId = null;
+let storyIndex = 0;
+let storyTimer = null;
+let storySet = [];
+let uploadedImages = [];
+let storyUploadedImage = null;
+let isAdmin = false;
+let adminPostsAll = [...demoPosts];
+
+/* ═══════════════════════════════════════
+   INIT
+═══════════════════════════════════════ */
+async function init() {
+  initSupabase();
+  
+  // Detect admin
+  if (tgUser) {
+    isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID);
+  } else {
+    // Demo mode — show admin controls
+    isAdmin = true; // for testing
+  }
+
+  // Register/update user in DB
+  if (db && tgUser) {
+    try {
+      await db.from('users').upsert({
+        telegram_id: String(tgUser.id),
+        first_name: tgUser.first_name || '',
+        last_name: tgUser.last_name || '',
+        username: tgUser.username || '',
+        photo_url: tgUser.photo_url || '',
+        last_seen: new Date().toISOString(),
+      }, { onConflict: 'telegram_id' });
+    } catch(e) {}
+  }
+
+  // Load data
+  await loadFeed();
+  renderStories();
+  renderProfile();
+  renderNotifications();
+  renderSearchResults(demoPosts);
+
+  // Admin FAB
+  if (isAdmin) {
+    document.getElementById('fabBtn').classList.add('visible');
+  }
+
+  // Subscribe realtime
+  if (db) {
+    setupRealtime();
+  }
+
+  // Hide loader
+  setTimeout(() => {
+    document.getElementById('loadingScreen').style.opacity = '0';
+    document.getElementById('loadingScreen').style.transition = 'opacity 0.5s';
+    setTimeout(() => {
+      document.getElementById('loadingScreen').style.display = 'none';
+      document.getElementById('appHeader').style.display = 'flex';
+      document.getElementById('app').style.display = 'block';
+      document.getElementById('bottomNav').style.display = 'flex';
+    }, 500);
+  }, 1200);
+}
+
+/* ═══════════════════════════════════════
+   SUPABASE REALTIME
+═══════════════════════════════════════ */
+function setupRealtime() {
+  if (!db) return;
+  realtimeChannel = db.channel('public:posts')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, (payload) => {
+      if (payload.eventType === 'INSERT') {
+        demoPosts.unshift(formatDBPost(payload.new));
+        currentPosts = [...demoPosts];
+        renderFeed();
+        showToast('📦 Yangi post qo\'shildi!', 'info');
+      } else if (payload.eventType === 'UPDATE') {
+        const idx = demoPosts.findIndex(p => p.id === payload.new.id);
+        if (idx !== -1) { demoPosts[idx] = formatDBPost(payload.new); renderFeed(); }
+      } else if (payload.eventType === 'DELETE') {
+        demoPosts = demoPosts.filter(p => p.id !== payload.old.id);
+        renderFeed();
+      }
+    })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, (payload) => {
+      if (payload.eventType === 'INSERT' && openPostId) {
+        loadComments(openPostId);
+      }
+    })
+    .subscribe();
+}
+
+function formatDBPost(row) {
+  return {
+    id: row.id, type: row.type || 'product',
+    title: row.title, description: row.description || '',
+    price: row.price || '', images: row.images || [],
+    tags: row.tags || [], likes: row.likes || 0,
+    comments: row.comments_count || 0, views: row.views || 0,
+    pinned: row.pinned || false, liked: false, saved: false,
+    created_at: row.created_at, disable_comments: row.disable_comments || false,
+    link: row.link || ''
+  };
+}
+
+/* ═══════════════════════════════════════
+   LOAD FEED
+═══════════════════════════════════════ */
+async function loadFeed() {
+  if (db) {
+    try {
+      const { data, error } = await db.from('posts').select('*').order('pinned', { ascending: false }).order('created_at', { ascending: false });
+      if (data && !error) {
+        demoPosts = data.map(formatDBPost);
+        currentPosts = [...demoPosts];
+      }
+    } catch(e) {}
+  }
+  renderFeed();
+}
+
+/* ═══════════════════════════════════════
+   RENDER FEED
+═══════════════════════════════════════ */
+function renderFeed() {
+  const feed = document.getElementById('postsFeed');
+  const posts = currentPosts.filter(p => currentFilter === 'all' || p.type === currentFilter);
+  
+  if (!posts.length) {
+    feed.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-tertiary)"><div style="font-size:48px;margin-bottom:12px;">📭</div><div style="font-size:16px;font-weight:600;">Hech qanday post topilmadi</div></div>';
+    return;
+  }
+
+  // Sort: pinned first
+  const sorted = [...posts].sort((a,b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  feed.innerHTML = sorted.map((p, i) => renderPostCard(p, i)).join('');
+
+  // Increment views
+  sorted.forEach(p => {
+    setTimeout(() => incrementViews(p.id), 1000 + Math.random() * 2000);
+  });
+}
+
+function renderPostCard(post, index) {
+  const delay = index * 80;
+  const imgs = post.images && post.images.length ? post.images : [DEMO_IMAGES.posts[index % DEMO_IMAGES.posts.length]];
+  const timeAgo = formatTime(post.created_at);
+  const typeIcon = { product:'📦', news:'📰', media:'🎬', shop:'🛍️' }[post.type] || '📦';
+  
+  return `
+  <div class="post-card glass-card" style="border-radius:24px;margin:0 12px 16px;animation:fadeInUp 0.5s ease ${delay}ms both;" id="post-${post.id}">
+    <!-- Header -->
+    <div class="post-header">
+      <div class="post-avatar"><img src="${DEMO_IMAGES.avatars[0]}" alt="admin" loading="lazy" /></div>
+      <div class="post-user-info">
+        <div class="post-username">
+          LUXE<span style="color:var(--accent)">✦</span>SHOP
+          <span class="verified-badge">✓</span>
+          ${post.pinned ? '<span class="pinned-badge">📌 PINNED</span>' : ''}
+        </div>
+        <div class="post-time">${typeIcon} ${post.type.toUpperCase()} · ${timeAgo}</div>
+      </div>
+      <div class="post-menu-btn" onclick="postMenu(${post.id})">⋯</div>
+    </div>
+
+    <!-- Image Carousel -->
+    <div class="post-images" id="carousel-${post.id}">
+      <div class="double-tap-overlay" ondblclick="doubleTapLike(${post.id}, event)" onclick="carouselClick(${post.id}, event)"></div>
+      <div class="carousel-track" id="track-${post.id}">
+        ${imgs.map(img => `
+          <div class="carousel-slide">
+            <img src="${img}" alt="${post.title}" loading="lazy" style="cursor:zoom-in;" onclick="openFullscreen('${img}')" />
+          </div>
+        `).join('')}
+      </div>
+      ${imgs.length > 1 ? `
+        <div class="carousel-dots" id="dots-${post.id}">
+          ${imgs.map((_,i) => `<div class="carousel-dot${i===0?' active':''}"></div>`).join('')}
+        </div>
+        <div class="carousel-counter" id="counter-${post.id}">1/${imgs.length}</div>
+      ` : ''}
+    </div>
+
+    <!-- Product Info -->
+    <div class="product-info">
+      <div class="product-title">${post.title}</div>
+      <div class="product-desc">${post.description}</div>
+      ${post.price ? `<div class="price-badge"><span style="font-size:18px;">💎</span><span class="product-price">${post.price}</span></div>` : ''}
+      ${post.tags && post.tags.length ? `<div class="product-tags">${post.tags.map(t=>`<span class="product-tag">${t}</span>`).join('')}</div>` : ''}
+    </div>
+
+    <!-- Actions -->
+    <div class="post-actions">
+      <div class="action-btn ${post.liked ? 'liked' : ''}" onclick="toggleLike(${post.id})" id="like-btn-${post.id}">
+        <span class="icon">${post.liked ? '❤️' : '🤍'}</span>
+        <span class="count" id="like-count-${post.id}">${formatNum(post.likes)}</span>
+      </div>
+      <div class="action-btn" onclick="openComments(${post.id})" ${post.disable_comments ? 'style="opacity:0.4;pointer-events:none;"' : ''}>
+        <span class="icon">💬</span>
+        <span class="count" id="comment-count-${post.id}">${formatNum(post.comments)}</span>
+      </div>
+      <div class="action-btn" onclick="sharePost(${post.id})">
+        <span class="icon">↗️</span>
+        <span class="count">Ulash</span>
+      </div>
+      <div class="action-sep"></div>
+      <div class="views-count">
+        <span>👁️</span>
+        <span id="views-count-${post.id}">${formatNum(post.views)}</span>
+      </div>
+      <div class="action-btn" onclick="savePost(${post.id})" id="save-btn-${post.id}">
+        <span class="icon">${post.saved ? '🔖' : '🏷️'}</span>
+      </div>
+    </div>
+
+    <!-- Contact Admin -->
+    <div class="contact-admin-btn" onclick="contactAdmin(${post.id})">
+      <span class="tg-icon">✈️</span>
+      <div>
+        <div class="text">Adminga yozish</div>
+        <div class="sub">Mahsulot haqida so'rov yuborish</div>
+      </div>
+      <span style="margin-left:auto;font-size:18px;color:var(--text-tertiary);">›</span>
+    </div>
+
+    ${isAdmin ? `
+    <div style="display:flex;gap:8px;padding:0 16px 14px;">
+      <button class="btn-secondary" style="flex:1;font-size:13px;" onclick="editPost(${post.id})">✏️ Tahrirlash</button>
+      <button class="btn-danger" onclick="deletePost(${post.id})">🗑️ O'chirish</button>
+      ${!post.pinned ? `<button class="btn-secondary" style="font-size:13px;" onclick="pinPost(${post.id})">📌 Pin</button>` : `<button class="btn-secondary" style="font-size:13px;" onclick="unpinPost(${post.id})">📌 Unpin</button>`}
+    </div>
+    ` : ''}
+  </div>`;
+}
+
+/* Carousel */
+const carouselState = {};
+function carouselClick(postId, event) {
+  const imgs = demoPosts.find(p => p.id === postId)?.images || [];
+  if (imgs.length <= 1) return;
+  if (!carouselState[postId]) carouselState[postId] = 0;
+  const track = document.getElementById(`track-${postId}`);
+  if (!track) return;
+  const rect = track.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  if (x > rect.width / 2) {
+    carouselState[postId] = Math.min(carouselState[postId] + 1, imgs.length - 1);
+  } else {
+    carouselState[postId] = Math.max(carouselState[postId] - 1, 0);
+  }
+  const idx = carouselState[postId];
+  track.style.transform = `translateX(-${idx * 100}%)`;
+  const dots = document.querySelectorAll(`#dots-${postId} .carousel-dot`);
+  dots.forEach((d,i) => d.classList.toggle('active', i === idx));
+  const counter = document.getElementById(`counter-${postId}`);
+  if (counter) counter.textContent = `${idx+1}/${imgs.length}`;
+}
+
+/* ═══════════════════════════════════════
+   STORIES
+═══════════════════════════════════════ */
+function renderStories() {
+  const row = document.getElementById('storiesRow');
+  row.innerHTML = `
+    <div class="story-item" onclick="showAddStory()">
+      <div class="story-avatar-wrap add-story">
+        <div class="story-avatar-inner" style="display:flex;align-items:center;justify-content:center;font-size:28px;background:rgba(255,255,255,0.05);">🏪</div>
+        <div class="add-story-plus">+</div>
+      </div>
+      <span class="story-label">Do'kon</span>
+    </div>
+    ${demoStories.map((s, i) => `
+      <div class="story-item" onclick="openStory(${i})">
+        <div class="story-avatar-wrap ${s.seen ? 'seen' : ''}">
+          <div class="story-avatar-inner">
+            <img src="${s.avatar || DEMO_IMAGES.avatars[i % 3]}" alt="${s.name}" loading="lazy" />
+          </div>
+        </div>
+        <span class="story-label">${s.name}</span>
+      </div>
+    `).join('')}
+  `;
+}
+
+function openStory(index) {
+  storySet = demoStories;
+  storyIndex = index;
+  document.getElementById('storiesViewer').classList.add('open');
+  loadStory(storyIndex);
+  tg?.disableClosingConfirmation?.();
+}
+
+function loadStory(idx) {
+  const story = storySet[idx];
+  if (!story) { closeStories(); return; }
+  document.getElementById('storyImage').src = story.image;
+  document.getElementById('storyAuthorName').textContent = story.name;
+  document.getElementById('storyTime').textContent = 'Hozir';
+  document.getElementById('storyAuthorAvatar').src = story.avatar || DEMO_IMAGES.avatars[0];
+
+  // Progress bars
+  const bars = document.getElementById('storyProgressBars');
+  bars.innerHTML = storySet.map((s, i) => `
+    <div class="story-progress-bar">
+      <div class="story-progress-fill" id="sp-${i}" style="width:${i < idx ? '100%' : '0%'};transition:${i===idx ? `width ${story.duration||5}s linear` : 'none'};"></div>
+    </div>
+  `).join('');
+
+  if (story.link) {
+    document.getElementById('storyCTA').style.display = 'block';
+    document.getElementById('storyLinkBtn').onclick = () => window.open(story.link, '_blank');
+  } else {
+    document.getElementById('storyCTA').style.display = 'none';
+  }
+
+  // Mark seen
+  demoStories[idx].seen = true;
+  renderStories();
+
+  // Animate progress
+  clearTimeout(storyTimer);
+  setTimeout(() => {
+    const fill = document.getElementById(`sp-${idx}`);
+    if (fill) fill.style.width = '100%';
+  }, 50);
+
+  storyTimer = setTimeout(() => {
+    if (idx + 1 < storySet.length) loadStory(idx + 1);
+    else closeStories();
+  }, (story.duration || 5) * 1000);
+
+  // Click zones
+  const content = document.getElementById('storyContent');
+  content.onclick = (e) => {
+    const w = content.offsetWidth;
+    if (e.offsetX < w / 3) {
+      clearTimeout(storyTimer);
+      if (idx > 0) loadStory(idx - 1); else closeStories();
+    } else if (e.offsetX > (w * 2) / 3) {
+      clearTimeout(storyTimer);
+      if (idx + 1 < storySet.length) loadStory(idx + 1); else closeStories();
+    }
+  };
+}
+
+function closeStories() {
+  clearTimeout(storyTimer);
+  document.getElementById('storiesViewer').classList.remove('open');
+  tg?.enableClosingConfirmation?.();
+}
+
+function showAddStory() {
+  if (!isAdmin) { showToast('Faqat admin story qo\'sha oladi', 'error'); return; }
+  openAdminPanel();
+  setTimeout(() => switchAdminTab('stories', document.querySelectorAll('.admin-tab')[3]), 300);
+}
+
+/* ═══════════════════════════════════════
+   LIKES
+═══════════════════════════════════════ */
+async function toggleLike(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+
+  post.liked = !post.liked;
+  post.likes += post.liked ? 1 : -1;
+
+  const btn = document.getElementById(`like-btn-${postId}`);
+  const countEl = document.getElementById(`like-count-${postId}`);
+  if (btn) {
+    btn.classList.toggle('liked', post.liked);
+    btn.querySelector('.icon').textContent = post.liked ? '❤️' : '🤍';
+    btn.style.transform = 'scale(1.3)';
+    setTimeout(() => { if(btn) btn.style.transform = 'scale(1)'; }, 250);
+  }
+  if (countEl) countEl.textContent = formatNum(post.likes);
+
+  // Haptic
+  tg?.HapticFeedback?.impactOccurred('light');
+
+  // DB
+  if (db && tgUser) {
+    try {
+      if (post.liked) {
+        await db.from('likes').insert({ post_id: postId, user_id: String(tgUser.id) });
+        await db.from('posts').update({ likes: post.likes }).eq('id', postId);
+      } else {
+        await db.from('likes').delete().eq('post_id', postId).eq('user_id', String(tgUser.id));
+        await db.from('posts').update({ likes: post.likes }).eq('id', postId);
+      }
+    } catch(e) {}
+  }
+}
+
+function doubleTapLike(postId, event) {
+  event.stopPropagation();
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post || post.liked) return;
+  toggleLike(postId);
+
+  // Show heart burst
+  const burst = document.getElementById('heartBurst');
+  const icon = document.getElementById('heartIcon');
+  burst.style.display = 'flex';
+  icon.style.opacity = '0';
+  icon.style.transform = 'scale(0)';
+  requestAnimationFrame(() => {
+    icon.style.transition = 'all 0.15s cubic-bezier(0.34,1.56,0.64,1)';
+    icon.style.opacity = '1';
+    icon.style.transform = 'scale(1.2)';
+    setTimeout(() => {
+      icon.style.transition = 'all 0.4s ease';
+      icon.style.opacity = '0';
+      icon.style.transform = 'scale(1.5)';
+      setTimeout(() => { burst.style.display = 'none'; }, 400);
+    }, 600);
+  });
+  tg?.HapticFeedback?.impactOccurred('medium');
+}
+
+/* ═══════════════════════════════════════
+   SAVE
+═══════════════════════════════════════ */
+function savePost(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  post.saved = !post.saved;
+  const btn = document.getElementById(`save-btn-${postId}`);
+  if (btn) btn.querySelector('.icon').textContent = post.saved ? '🔖' : '🏷️';
+  showToast(post.saved ? '🔖 Saqlandi!' : '🏷️ Olib tashlandi');
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+
+/* ═══════════════════════════════════════
+   VIEWS
+═══════════════════════════════════════ */
+async function incrementViews(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  post.views++;
+  const el = document.getElementById(`views-count-${postId}`);
+  if (el) el.textContent = formatNum(post.views);
+  if (db) {
+    try { await db.from('posts').update({ views: post.views }).eq('id', postId); } catch(e) {}
+  }
+}
+
+/* ═══════════════════════════════════════
+   COMMENTS
+═══════════════════════════════════════ */
+function openComments(postId) {
+  openPostId = postId;
+  const post = demoPosts.find(p => p.id === postId);
+  document.getElementById('commentCount').textContent = `(${post?.comments || 0})`;
+  loadComments(postId);
+  document.getElementById('commentsSheet').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  updateBackButton?.();
+  if (tgUser) {
+    const av = document.getElementById('commentUserAvatar');
+    if (tgUser.photo_url) {
+      av.innerHTML = `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+    } else {
+      av.textContent = (tgUser.first_name || '👤')[0];
+    }
+  }
+}
+
+async function loadComments(postId) {
+  const list = document.getElementById('commentsList');
+  
+  let comments = [];
+  if (db) {
+    try {
+      const { data } = await db.from('comments').select('*').eq('post_id', postId).order('created_at', { ascending: true });
+      if (data) comments = data;
+    } catch(e) {}
+  }
+  if (!comments.length) comments = demoComments[postId] || [];
+
+  if (!comments.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-tertiary)">💬 Birinchi bo\'lib izoh qoldiring!</div>';
+    return;
+  }
+
+  list.innerHTML = comments.map(c => `
+    <div class="comment-item" id="comment-${c.id}">
+      <div class="comment-avatar">
+        ${c.avatar || c.photo_url ? `<img src="${c.avatar || c.photo_url}" alt="" loading="lazy" />` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg-glass);">${(c.author || c.first_name || '?')[0]}</div>`}
+      </div>
+      <div class="comment-body">
+        <span class="comment-author">${c.author || c.first_name || 'Foydalanuvchi'}</span>
+        ${c.username ? `<span style="font-size:12px;color:var(--text-tertiary);margin-left:4px;">@${c.username}</span>` : ''}
+        <div class="comment-text">${c.text || c.content || ''}</div>
+        <div class="comment-actions">
+          <span class="comment-time">${c.time || formatTime(c.created_at)}</span>
+          <span class="comment-like" onclick="likeComment(${c.id})">❤️ ${c.likes || 0}</span>
+          <span class="comment-like" onclick="replyComment('${c.author || c.first_name}')">↩️ Javob</span>
+          ${isAdmin ? `<span class="comment-like" style="color:var(--accent-pink);" onclick="deleteComment(${c.id}, ${postId})">🗑️</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  list.scrollTop = list.scrollHeight;
+}
+
+async function submitComment() {
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const userName = tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Mehmon';
+  const userUsername = tgUser?.username || '';
+
+  const newComment = {
+    id: Date.now(),
+    author: userName, username: userUsername,
+    text, time: 'Hozir', likes: 0,
+    avatar: tgUser?.photo_url || null,
+    post_id: openPostId,
+  };
+
+  if (!demoComments[openPostId]) demoComments[openPostId] = [];
+  demoComments[openPostId].push(newComment);
+
+  const post = demoPosts.find(p => p.id === openPostId);
+  if (post) {
+    post.comments++;
+    const el = document.getElementById(`comment-count-${openPostId}`);
+    if (el) el.textContent = formatNum(post.comments);
+  }
+
+  input.value = '';
+  loadComments(openPostId);
+  tg?.HapticFeedback?.impactOccurred('light');
+
+  if (db) {
+    try {
+      await db.from('comments').insert({
+        post_id: openPostId,
+        user_id: tgUser ? String(tgUser.id) : null,
+        first_name: userName,
+        username: userUsername,
+        photo_url: tgUser?.photo_url || null,
+        content: text,
+      });
+      await db.from('posts').update({ comments_count: post.comments }).eq('id', openPostId);
+    } catch(e) {}
+  }
+}
+
+function likeComment(id) {
+  showToast('❤️ Yoqdi!');
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+
+function replyComment(name) {
+  const input = document.getElementById('commentInput');
+  input.value = `@${name} `;
+  input.focus();
+}
+
+function deleteComment(commentId, postId) {
+  if (!demoComments[postId]) return;
+  demoComments[postId] = demoComments[postId].filter(c => c.id !== commentId);
+  loadComments(postId);
+  showToast('🗑️ Izoh o\'chirildi');
+  if (db) {
+    try { db.from('comments').delete().eq('id', commentId); } catch(e) {}
+  }
+}
+
+function closeComments() {
+  document.getElementById('commentsSheet').classList.remove('open');
+  document.body.style.overflow = '';
+  openPostId = null;
+  updateBackButton?.();
+}
+
+/* ═══════════════════════════════════════
+   SHARE
+═══════════════════════════════════════ */
+function sharePost(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  const url = `${CONFIG.APP_URL}?post=${postId}`;
+  const text = `✨ ${post.title}\n\n${post.description}\n\n💎 Narx: ${post.price || 'Narx so\'rang'}\n\n🔗 ${url}`;
+
+  if (tg?.openTelegramLink) {
+    tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+  } else if (navigator.share) {
+    navigator.share({ title: post.title, text: post.description, url });
+  } else {
+    navigator.clipboard?.writeText(url);
+    showToast('🔗 Havola nusxalandi!');
+  }
+  tg?.HapticFeedback?.impactOccurred('medium');
+}
+
+/* ═══════════════════════════════════════
+   CONTACT ADMIN
+═══════════════════════════════════════ */
+function contactAdmin(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  const url = `${CONFIG.APP_URL}?post=${postId}`;
+  const msg = `Salom, men ushbu mahsulot haqida yozmoqchiman:\n\n📦 Mahsulot: ${post.title}\n💎 Narx: ${post.price || "Narx so'rang"}\n🔗 Link: ${url}\n\nMahsulot ID: #${postId}`;
+  const tgUrl = `https://t.me/${CONFIG.ADMIN_USERNAME}?text=${encodeURIComponent(msg)}`;
+  
+  if (tg?.openTelegramLink) {
+    tg.openTelegramLink(tgUrl);
+  } else {
+    window.open(tgUrl, '_blank');
+  }
+  tg?.HapticFeedback?.impactOccurred('medium');
+}
+
+/* ═══════════════════════════════════════
+   FULLSCREEN
+═══════════════════════════════════════ */
+function openFullscreen(src) {
+  document.getElementById('fullscreenImg').src = src;
+  document.getElementById('fullscreenViewer').classList.add('open');
+}
+function closeFullscreen() {
+  document.getElementById('fullscreenViewer').classList.remove('open');
+}
+
+/* ═══════════════════════════════════════
+   POST MENU
+═══════════════════════════════════════ */
+function postMenu(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  const opts = ['📋 Havolani nusxalash', '↗️ Ulashish'];
+  if (isAdmin) opts.push('✏️ Tahrirlash', '🗑️ O\'chirish', post.pinned ? '📌 Pindan olish' : '📌 Pinlash');
+  
+  tg?.showPopup?.({
+    title: post.title,
+    message: `${formatNum(post.likes)} ❤️  ${formatNum(post.views)} 👁️`,
+    buttons: opts.map((o, i) => ({ id: String(i), type: 'default', text: o })),
+  }, (btnId) => {
+    const i = parseInt(btnId);
+    if (i === 0) { navigator.clipboard?.writeText(`${CONFIG.APP_URL}?post=${postId}`); showToast('🔗 Nusxalandi!'); }
+    else if (i === 1) sharePost(postId);
+    else if (i === 2 && isAdmin) editPost(postId);
+    else if (i === 3 && isAdmin) deletePost(postId);
+    else if (i === 4 && isAdmin) post.pinned ? unpinPost(postId) : pinPost(postId);
+  }) || (() => {
+    // Fallback
+    const actions = [
+      { label: '📋 Nusxalash', fn: () => { navigator.clipboard?.writeText(`${CONFIG.APP_URL}?post=${postId}`); showToast('🔗 Nusxalandi!'); } },
+      { label: '↗️ Ulashish', fn: () => sharePost(postId) },
+    ];
+    showActionSheet(actions);
+  })();
+}
+
+/* ═══════════════════════════════════════
+   FILTER
+═══════════════════════════════════════ */
+function filterPosts(type, el) {
+  currentFilter = type;
+  document.querySelectorAll('.category-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderFeed();
+}
+
+/* ═══════════════════════════════════════
+   SEARCH
+═══════════════════════════════════════ */
+function openSearch() { switchScreen('search', document.getElementById('nav-search')); }
+
+function onSearch(q) {
+  const lower = q.toLowerCase();
+  const results = demoPosts.filter(p =>
+    p.title.toLowerCase().includes(lower) ||
+    p.description.toLowerCase().includes(lower) ||
+    (p.tags || []).some(t => t.toLowerCase().includes(lower))
+  );
+  renderSearchResults(results, q);
+}
+
+function renderSearchResults(posts, q = '') {
+  const el = document.getElementById('searchResults');
+  if (!posts.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-tertiary)">🔍 Hech narsa topilmadi</div>';
+    return;
+  }
+  el.innerHTML = posts.map(p => `
+    <div class="post-list-item" style="margin:8px 16px;" onclick="goToPost(${p.id})">
+      <div class="post-list-thumb">
+        <img src="${(p.images && p.images[0]) || DEMO_IMAGES.posts[0]}" alt="" loading="lazy" />
+      </div>
+      <div class="post-list-info">
+        <div class="post-list-title">${p.title}</div>
+        <div class="post-list-meta">
+          <span>❤️ ${formatNum(p.likes)}</span>
+          <span>👁️ ${formatNum(p.views)}</span>
+          <span>${formatTime(p.created_at)}</span>
+        </div>
+        <div class="product-tags" style="margin-top:6px;">${(p.tags||[]).map(t=>`<span class="product-tag" style="font-size:11px;padding:2px 8px;">${t}</span>`).join('')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function goToPost(postId) {
+  switchScreen('feed', document.getElementById('nav-feed'));
+  setTimeout(() => {
+    const el = document.getElementById(`post-${postId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 300);
+}
+
+/* ═══════════════════════════════════════
+   NOTIFICATIONS
+═══════════════════════════════════════ */
+function showNotifications() { switchScreen('notifications', document.getElementById('nav-notifications')); }
+
+function renderNotifications() {
+  const el = document.getElementById('notifList');
+  const icons = { like: '❤️', comment: '💬', follow: '➕', view: '👁️', sale: '📦' };
+  el.innerHTML = demoNotifications.map(n => `
+    <div class="activity-item" style="padding:12px 0;border-radius:16px;${!n.read ? 'background:rgba(10,132,255,0.05);margin:0 -8px;padding:12px 8px;' : ''}">
+      <div class="activity-icon" style="background:var(--bg-glass);">${icons[n.type] || '🔔'}</div>
+      <div style="flex:1;">
+        <div class="activity-text">${n.text}</div>
+        <div class="activity-time">${n.time}</div>
+      </div>
+      ${!n.read ? '<div class="online-dot"></div>' : ''}
+    </div>
+  `).join('');
+  document.getElementById('notifBadge').textContent = demoNotifications.filter(n => !n.read).length || '';
+  if (!demoNotifications.filter(n=>!n.read).length) document.getElementById('notifBadge').style.display = 'none';
+}
+
+/* ═══════════════════════════════════════
+   PROFILE
+═══════════════════════════════════════ */
+function renderProfile() {
+  const el = document.getElementById('profileContent');
+  const name = tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : 'Demo User';
+  const username = tgUser?.username || 'demo_user';
+  const avatar = tgUser?.photo_url || null;
+  const totalLikes = demoPosts.reduce((s,p) => s + (p.liked ? 1 : 0), 0);
+
+  el.innerHTML = `
+    <div class="profile-cover" style="background:linear-gradient(135deg,#0d0d1a,#1a0a2e);">
+      <img src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=800&q=80" alt="" style="opacity:0.3;" loading="lazy" />
+    </div>
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">
+        ${avatar ? `<img src="${avatar}" alt="${name}" />` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,var(--accent),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;">${name[0] || '?'}</div>`}
+      </div>
+    </div>
+    <div class="profile-info">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div class="profile-name">${name}</div>
+          <div class="profile-username">@${username}</div>
+        </div>
+        ${isAdmin ? '<div style="background:linear-gradient(135deg,var(--accent),var(--accent-purple));color:white;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;" onclick="openAdminPanel()">⚙️ Admin Panel</div>' : ''}
+      </div>
+      <div class="profile-bio">LUXE SHOP — Premium mahsulotlar va yangiliklar. Eng yaxshi narxlar kafolatlangan. ✨</div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="profile-stat-num">${demoPosts.length}</div>
+          <div class="profile-stat-label">Postlar</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-num">${formatNum(demoPosts.reduce((s,p)=>s+p.views,0))}</div>
+          <div class="profile-stat-label">Ko'rishlar</div>
+        </div>
+        <div class="profile-stat">
+          <div class="profile-stat-num">${formatNum(demoPosts.reduce((s,p)=>s+p.likes,0))}</div>
+          <div class="profile-stat-label">Likes</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:16px;">
+        <button class="btn-primary" style="flex:1;" onclick="contactAdmin(-1)">✈️ Adminga Yozish</button>
+        <button class="btn-secondary" onclick="sharePost(demoPosts[0]?.id)">↗️</button>
+      </div>
+    </div>
+
+    <div style="padding:0 16px;margin-top:8px;">
+      <div class="section-header">Saqlangan Postlar</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;">
+        ${demoPosts.filter(p=>p.saved).map(p=>`
+          <div style="aspect-ratio:1;border-radius:12px;overflow:hidden;cursor:pointer;" onclick="goToPost(${p.id})">
+            <img src="${(p.images&&p.images[0])||DEMO_IMAGES.posts[0]}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+          </div>
+        `).join('') || '<div style="color:var(--text-tertiary);font-size:14px;grid-column:span 3;padding:20px 0;text-align:center;">🔖 Saqlangan postlar yo\'q</div>'}
+      </div>
+
+      ${isAdmin ? `
+      <div style="margin-top:20px;">
+        <div class="section-header">⚙️ Admin Amallar</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button class="btn-primary" onclick="openAdminPanel()">📊 Admin Panelni Ochish</button>
+          <button class="btn-secondary" onclick="exportData()">📤 Ma'lumotlarni Eksport</button>
+        </div>
+      </div>
+      ` : ''}
+    </div>
+    <div style="height:20px;"></div>
+  `;
+}
+
+/* ═══════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════ */
+function switchScreen(name, el) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`screen-${name}`).classList.add('active');
+  if (el) el.classList.add('active');
+  currentScreen = name;
+  
+  // Header visibility
+  document.getElementById('appHeader').style.display = name === 'feed' ? 'flex' : 'none';
+  
+  // Update profile on switch
+  if (name === 'profile') renderProfile();
+  
+  updateBackButton?.();
+  tg?.HapticFeedback?.selectionChanged?.();
+}
+
+/* ═══════════════════════════════════════
+   ADMIN PANEL
+═══════════════════════════════════════ */
+function openAdminPanel() {
+  if (!isAdmin) { showToast('Admin huquqi yo\'q', 'error'); return; }
+  document.getElementById('adminPanel').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  loadAdminDashboard();
+  renderAdminPosts();
+  renderAdminUsers();
+  renderAdminStories();
+  updateBackButton?.();
+}
+
+function closeAdminPanel() {
+  document.getElementById('adminPanel').classList.remove('open');
+  document.body.style.overflow = '';
+  updateBackButton?.();
+}
+
+function switchAdminTab(name, el) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`admin-${name}`).classList.add('active');
+}
+
+function loadAdminDashboard() {
+  document.getElementById('statUsers').textContent = demoUsers.length;
+  document.getElementById('statPosts').textContent = demoPosts.length;
+  document.getElementById('statLikes').textContent = formatNum(demoPosts.reduce((s,p)=>s+p.likes,0));
+  document.getElementById('statComments').textContent = formatNum(demoPosts.reduce((s,p)=>s+p.comments,0));
+  document.getElementById('statViews').textContent = formatNum(demoPosts.reduce((s,p)=>s+p.views,0));
+  document.getElementById('statTrending').textContent = demoPosts.filter(p=>p.likes>100).length;
+  
+  document.getElementById('totalUsersCount').textContent = demoUsers.length;
+  document.getElementById('onlineUsersCount').textContent = demoUsers.filter(u=>u.online).length;
+  document.getElementById('blockedUsersCount').textContent = demoUsers.filter(u=>u.blocked).length;
+
+  // Activity
+  const actList = document.getElementById('activityList');
+  actList.innerHTML = [
+    { icon: '❤️', text: 'Jasur Toshmatov "AirPods Pro"ni yoqtirdi', time: '5 daqiqa oldin', bg: 'rgba(255,55,95,0.15)' },
+    { icon: '💬', text: 'Malika Yusupova izoh yozdi', time: '12 daqiqa oldin', bg: 'rgba(10,132,255,0.15)' },
+    { icon: '👁️', text: '"iPhone 16 Pro" 4200 ta ko\'rishga yetdi', time: '1 soat oldin', bg: 'rgba(191,90,242,0.15)' },
+    { icon: '👤', text: 'Bobur Karimov qo\'shildi', time: '2 soat oldin', bg: 'rgba(48,209,88,0.15)' },
+    { icon: '📦', text: '"Nike Air Max" uchun so\'rov keldi', time: '3 soat oldin', bg: 'rgba(255,159,10,0.15)' },
+  ].map(a => `
+    <div class="activity-item">
+      <div class="activity-icon" style="background:${a.bg};">${a.icon}</div>
+      <div style="flex:1;"><div class="activity-text">${a.text}</div><div class="activity-time">${a.time}</div></div>
+    </div>
+  `).join('');
+
+  // Trending
+  const trendList = document.getElementById('trendingList');
+  const sorted = [...demoPosts].sort((a,b)=>b.likes-a.likes).slice(0,3);
+  trendList.innerHTML = sorted.map((p,i) => `
+    <div class="post-list-item" style="margin-bottom:10px;">
+      <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0;background:${['linear-gradient(135deg,#FFD60A,#FF9500)','linear-gradient(135deg,#8E8E93,#636366)','linear-gradient(135deg,#A2845E,#8B6914)'][i]};">${i+1}</div>
+      <div class="post-list-thumb"><img src="${(p.images&&p.images[0])||DEMO_IMAGES.posts[0]}" loading="lazy" /></div>
+      <div class="post-list-info">
+        <div class="post-list-title">${p.title}</div>
+        <div class="post-list-meta"><span>❤️ ${formatNum(p.likes)}</span><span>👁️ ${formatNum(p.views)}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ── Create Post ── */
+async function createPost() {
+  const title = document.getElementById('postTitle').value.trim();
+  const desc = document.getElementById('postDesc').value.trim();
+  const price = document.getElementById('postPrice').value.trim();
+  const type = document.getElementById('postType').value;
+  const tags = document.getElementById('postTags').value.split(' ').filter(t => t.startsWith('#'));
+  const link = document.getElementById('postLink').value.trim();
+  const pinned = document.getElementById('postPinned').checked;
+  const disableComments = document.getElementById('postDisableComments').checked;
+
+  if (!title) { showToast('Sarlavha kiriting!', 'error'); return; }
+
+  const newPost = {
+    id: Date.now(),
+    type, title, description: desc, price,
+    images: uploadedImages.length ? uploadedImages : [DEMO_IMAGES.posts[Math.floor(Math.random() * DEMO_IMAGES.posts.length)]],
+    tags, link, pinned, disable_comments: disableComments,
+    likes: 0, comments: 0, views: 0,
+    liked: false, saved: false, created_at: new Date().toISOString(),
+  };
+
+  if (db) {
+    try {
+      const { data, error } = await db.from('posts').insert({
+        type, title, description: desc, price,
+        images: newPost.images, tags, link, pinned,
+        disable_comments: disableComments, likes: 0, views: 0, comments_count: 0,
+      }).select().single();
+      if (!error && data) newPost.id = data.id;
+    } catch(e) {}
+  }
+
+  demoPosts.unshift(newPost);
+  currentPosts = [...demoPosts];
+  adminPostsAll = [...demoPosts];
+
+  // Reset form
+  ['postTitle','postDesc','postPrice','postLink'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('postTags').value = '';
+  document.getElementById('postPinned').checked = false;
+  document.getElementById('postDisableComments').checked = false;
+  document.getElementById('imagePreviewGrid').innerHTML = '';
+  uploadedImages = [];
+
+  renderFeed();
+  renderAdminPosts();
+  closeAdminPanel();
+  showToast('✨ Post nashr etildi!');
+  tg?.HapticFeedback?.notificationOccurred('success');
+}
+
+/* ── Image Upload ── */
+function handleImageUpload(event) {
+  const files = Array.from(event.target.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedImages.push(e.target.result);
+      renderImagePreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImagePreviews() {
+  const grid = document.getElementById('imagePreviewGrid');
+  grid.innerHTML = uploadedImages.map((src, i) => `
+    <div class="image-preview-item">
+      <img src="${src}" alt="" />
+      <div class="image-preview-remove" onclick="removeUploadedImage(${i})">✕</div>
+    </div>
+  `).join('');
+}
+
+function removeUploadedImage(index) {
+  uploadedImages.splice(index, 1);
+  renderImagePreviews();
+}
+
+/* ── Story Upload ── */
+function handleStoryUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => { storyUploadedImage = e.target.result; showToast('📸 Rasm yuklandi!'); };
+  reader.readAsDataURL(file);
+}
+
+async function createStory() {
+  const name = document.getElementById('storyName').value.trim();
+  const link = document.getElementById('storyLink').value.trim();
+  const duration = parseInt(document.getElementById('storyDuration').value);
+  if (!name) { showToast('Story nomini kiriting!', 'error'); return; }
+
+  const newStory = {
+    id: Date.now(), name, seen: false,
+    image: storyUploadedImage || DEMO_IMAGES.stories[Math.floor(Math.random() * DEMO_IMAGES.stories.length)],
+    link, duration, avatar: DEMO_IMAGES.avatars[0],
+  };
+  demoStories.push(newStory);
+  renderStories();
+  renderAdminStories();
+
+  document.getElementById('storyName').value = '';
+  document.getElementById('storyLink').value = '';
+  storyUploadedImage = null;
+
+  showToast('⭕ Story qo\'shildi!');
+}
+
+/* ── Admin Posts ── */
+function renderAdminPosts() {
+  const el = document.getElementById('adminPostsList');
+  el.innerHTML = adminPostsAll.map(p => `
+    <div class="post-list-item">
+      <div class="post-list-thumb"><img src="${(p.images&&p.images[0])||DEMO_IMAGES.posts[0]}" loading="lazy" /></div>
+      <div class="post-list-info">
+        <div class="post-list-title">${p.pinned ? '📌 ' : ''}${p.title}</div>
+        <div class="post-list-meta">
+          <span>❤️ ${formatNum(p.likes)}</span>
+          <span>💬 ${formatNum(p.comments)}</span>
+          <span>👁️ ${formatNum(p.views)}</span>
+        </div>
+        <div class="post-list-actions">
+          <button class="btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="editPost(${p.id})">✏️</button>
+          <button class="btn-danger" style="font-size:12px;padding:6px 10px;" onclick="deletePost(${p.id})">🗑️</button>
+          <button class="btn-secondary" style="font-size:12px;padding:6px 10px;" onclick="${p.pinned ? 'unpinPost' : 'pinPost'}(${p.id})">📌</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterAdminPosts(q) {
+  const lower = q.toLowerCase();
+  adminPostsAll = demoPosts.filter(p => p.title.toLowerCase().includes(lower));
+  renderAdminPosts();
+}
+
+function deletePost(postId) {
+  if (!confirm && !tg?.showPopup) {
+    demoPosts = demoPosts.filter(p => p.id !== postId);
+    currentPosts = [...demoPosts];
+    adminPostsAll = [...demoPosts];
+    renderFeed(); renderAdminPosts();
+    showToast('🗑️ Post o\'chirildi');
+    return;
+  }
+  tg?.showPopup?.({
+    title: 'O\'chirish', message: 'Bu postni o\'chirmoqchimisiz?',
+    buttons: [{ id: 'yes', type: 'destructive', text: 'O\'chirish' }, { id: 'no', type: 'cancel', text: 'Bekor' }]
+  }, (id) => {
+    if (id === 'yes') {
+      demoPosts = demoPosts.filter(p => p.id !== postId);
+      currentPosts = [...demoPosts]; adminPostsAll = [...demoPosts];
+      renderFeed(); renderAdminPosts();
+      showToast('🗑️ Post o\'chirildi');
+      if (db) { try { db.from('posts').delete().eq('id', postId); } catch(e) {} }
+    }
+  }) || (() => {
+    demoPosts = demoPosts.filter(p => p.id !== postId);
+    currentPosts = [...demoPosts]; adminPostsAll = [...demoPosts];
+    renderFeed(); renderAdminPosts();
+    showToast('🗑️ Post o\'chirildi');
+  })();
+}
+
+function editPost(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (!post) return;
+  openAdminPanel();
+  setTimeout(() => {
+    switchAdminTab('create', document.querySelectorAll('.admin-tab')[1]);
+    document.getElementById('postTitle').value = post.title;
+    document.getElementById('postDesc').value = post.description;
+    document.getElementById('postPrice').value = post.price || '';
+    document.getElementById('postTags').value = (post.tags||[]).join(' ');
+    document.getElementById('postLink').value = post.link || '';
+    document.getElementById('postPinned').checked = post.pinned;
+    document.getElementById('postDisableComments').checked = post.disable_comments;
+    showToast('✏️ Tahrirlash uchun tayyor');
+  }, 300);
+}
+
+function pinPost(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (post) { post.pinned = true; renderFeed(); renderAdminPosts(); showToast('📌 Post pinlandi'); }
+  if (db) { try { db.from('posts').update({ pinned: true }).eq('id', postId); } catch(e) {} }
+}
+
+function unpinPost(postId) {
+  const post = demoPosts.find(p => p.id === postId);
+  if (post) { post.pinned = false; renderFeed(); renderAdminPosts(); showToast('📌 Pin olib tashlandi'); }
+  if (db) { try { db.from('posts').update({ pinned: false }).eq('id', postId); } catch(e) {} }
+}
+
+/* ── Admin Stories ── */
+function renderAdminStories() {
+  const el = document.getElementById('adminStoriesList');
+  el.innerHTML = demoStories.map(s => `
+    <div style="position:relative;width:80px;">
+      <div style="width:80px;height:120px;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);">
+        <img src="${s.image}" style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+      </div>
+      <div style="font-size:11px;font-weight:600;text-align:center;margin-top:4px;color:var(--text-secondary);">${s.name}</div>
+      <div style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:rgba(255,55,95,0.8);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;" onclick="deleteStory(${s.id})">✕</div>
+    </div>
+  `).join('');
+}
+
+function deleteStory(id) {
+  demoStories = demoStories.filter(s => s.id !== id);
+  renderStories();
+  renderAdminStories();
+  showToast('⭕ Story o\'chirildi');
+}
+
+/* ── Admin Users ── */
+function renderAdminUsers() {
+  const el = document.getElementById('adminUsersList');
+  el.innerHTML = demoUsers.map(u => `
+    <div class="user-item">
+      <div class="user-item-avatar">${u.online ? '🟢' : '👤'}</div>
+      <div style="flex:1;">
+        <div class="user-item-name">${u.name} ${u.blocked ? '<span style="color:var(--accent-pink);font-size:11px;">[BLOCKED]</span>' : ''}</div>
+        <div class="user-item-username">@${u.username} · ❤️ ${u.posts_liked}</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        ${!u.blocked
+          ? `<button class="btn-danger" style="font-size:11px;padding:5px 10px;" onclick="blockUser(${u.id})">🚫</button>`
+          : `<button class="btn-secondary" style="font-size:11px;padding:5px 10px;" onclick="unblockUser(${u.id})">✅</button>`}
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterAdminUsers(q) {
+  const lower = q.toLowerCase();
+  const filtered = demoUsers.filter(u => u.name.toLowerCase().includes(lower) || u.username.toLowerCase().includes(lower));
+  const el = document.getElementById('adminUsersList');
+  el.innerHTML = filtered.map(u => `
+    <div class="user-item">
+      <div class="user-item-avatar">${u.online ? '🟢' : '👤'}</div>
+      <div style="flex:1;"><div class="user-item-name">${u.name}</div><div class="user-item-username">@${u.username}</div></div>
+    </div>
+  `).join('');
+}
+
+function blockUser(id) {
+  const u = demoUsers.find(u => u.id === id);
+  if (u) { u.blocked = true; renderAdminUsers(); showToast('🚫 Foydalanuvchi bloklandi'); }
+}
+
+function unblockUser(id) {
+  const u = demoUsers.find(u => u.id === id);
+  if (u) { u.blocked = false; renderAdminUsers(); showToast('✅ Blok olib tashlandi'); }
+}
+
+/* ── Notifications ── */
+async function sendNotification() {
+  const title = document.getElementById('notifTitle').value.trim();
+  const message = document.getElementById('notifMessage').value.trim();
+  const type = document.getElementById('notifType').value;
+  if (!title || !message) { showToast('Ma\'lumotlarni to\'ldiring!', 'error'); return; }
+
+  const notif = { id: Date.now(), title, message, type, sent_at: new Date().toISOString() };
+  
+  if (db) {
+    try { await db.from('notifications').insert(notif); } catch(e) {}
+  }
+
+  // Add to demo list
+  demoNotifications.unshift({ id: Date.now(), type: 'sale', text: `${title}: ${message}`, time: 'Hozir', read: false });
+  
+  document.getElementById('notifTitle').value = '';
+  document.getElementById('notifMessage').value = '';
+  
+  const typeIcons = { info: 'ℹ️', product: '📦', sale: '🔥', urgent: '🚨' };
+  const sentEl = document.getElementById('sentNotifList');
+  sentEl.innerHTML = `
+    <div class="activity-item glass-card" style="border-radius:16px;padding:12px;margin-bottom:10px;">
+      <div class="activity-icon" style="background:var(--bg-glass);">${typeIcons[type]}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:700;">${title}</div><div class="activity-text">${message}</div><div class="activity-time">Hozir yuborildi</div></div>
+    </div>
+  ` + sentEl.innerHTML;
+  
+  showToast('📣 Xabarnoma yuborildi!');
+  tg?.HapticFeedback?.notificationOccurred('success');
+}
+
+/* ── AI Tools ── */
+const AI_RESPONSES = {
+  titles: [
+    'Premium Sifatli Mahsulot — Faqat Bizda!',
+    '🔥 Yangi Keldi! Limitli Taklif',
+    '✨ Eksklyuziv Mahsulot — Siz Uchun',
+    'Eng Yaxshi Narxda Premium Mahsulot',
+    '🌟 Top Trend Mahsulot 2025',
+  ],
+  descs: [
+    'Bu mahsulot yuqori sifatli materiallardan tayyorlangan bo\'lib, uzoq vaqt xizmat qiladi. Barcha standartlarga javob beradi va kafolat bilan ta\'minlanadi.',
+    'Zamonaviy dizayn va premium sifat bir joyda. Har bir tafsilot mukammal ishlov berilgan. Foydalanuvchilar orasida eng ko\'p sotilgan mahsulot.',
+    'Sizning hayot sifatingizni yangi darajaga olib chiqadigan mahsulot. Ilg\'or texnologiya va chiroyli dizayn uyg\'unligida yaratilgan.',
+  ],
+  tags: [
+    ['#premium', '#yangi', '#trend', '#sifat', '#kafolat'],
+    ['#sale', '#chegirma', '#limited', '#exclusive', '#top'],
+    ['#tech', '#gadget', '#lifestyle', '#luxury', '#uzb'],
+  ],
+};
+
+function aiGenerate(type) {
+  const input = document.getElementById('aiProductInput')?.value || '';
+  
+  const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  
+  if (type === 'title' || type === 'title-standalone') {
+    const title = getRandom(AI_RESPONSES.titles);
+    if (type === 'title') document.getElementById('postTitle').value = title;
+    else showAiOutput('✨ Sarlavha', title);
+    showToast('🤖 AI sarlavha yaratdi!');
+  } else if (type === 'desc' || type === 'desc-standalone') {
+    const desc = getRandom(AI_RESPONSES.descs);
+    if (type === 'desc') document.getElementById('postDesc').value = desc;
+    else showAiOutput('📝 Tavsif', desc);
+    showToast('🤖 AI tavsif yaratdi!');
+  } else if (type === 'tags' || type === 'tags-standalone') {
+    const tags = getRandom(AI_RESPONSES.tags).join(' ');
+    if (type === 'tags') document.getElementById('postTags').value = tags;
+    else showAiOutput('🏷️ Hashtags', tags);
+    showToast('🤖 AI hashtag yaratdi!');
+  } else if (type === 'full') {
+    const title = getRandom(AI_RESPONSES.titles);
+    const desc = getRandom(AI_RESPONSES.descs);
+    const tags = getRandom(AI_RESPONSES.tags).join(' ');
+    showAiOutput('🚀 Barcha Ma\'lumotlar', `📌 Sarlavha:\n${title}\n\n📝 Tavsif:\n${desc}\n\n🏷️ Hashtags:\n${tags}`);
+    showToast('🤖 AI hammani yaratdi!');
+  }
+}
+
+function showAiOutput(label, content) {
+  const el = document.getElementById('aiOutput');
+  el.style.display = 'block';
+  el.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--accent-purple);margin-bottom:8px;">${label}</div>
+    <div style="font-size:14px;color:var(--text-secondary);line-height:1.6;white-space:pre-wrap;">${content}</div>
+    <button class="btn-secondary" style="margin-top:12px;font-size:13px;" onclick="navigator.clipboard?.writeText(\`${content}\`);showToast('📋 Nusxalandi!')">📋 Nusxalash</button>
+  `;
+}
+
+/* ── Export ── */
+function exportData() {
+  const data = { posts: demoPosts, users: demoUsers, exported_at: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'luxeshop_data.json'; a.click();
+  showToast('📤 Ma\'lumotlar eksport qilindi!');
+}
+
+/* ═══════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════ */
+function formatNum(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(n || 0);
+}
+
+function formatTime(dateStr) {
+  if (!dateStr) return 'Hozir';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return 'Hozir';
+  if (diff < 3600) return Math.floor(diff / 60) + ' daqiqa oldin';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' soat oldin';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' kun oldin';
+  return new Date(dateStr).toLocaleDateString('uz-UZ');
+}
+
+let toastTimer = null;
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.className = ''; }, 2800);
+}
+
+// Drag & drop for upload area
+const uploadArea = document.getElementById('uploadArea');
+if (uploadArea) {
+  uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault(); uploadArea.classList.remove('drag-over');
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => { uploadedImages.push(ev.target.result); renderImagePreviews(); };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
+// Back button handler
+function updateBackButton() {
+  if (!tg) return;
+  const adminOpen = document.getElementById('adminPanel').classList.contains('open');
+  const commentsOpen = document.getElementById('commentsSheet').classList.contains('open');
+  const storiesOpen = document.getElementById('storiesViewer').classList.contains('open');
+  const fullscreenOpen = document.getElementById('fullscreenViewer').classList.contains('open');
+  const notFeed = currentScreen !== 'feed';
+  if (adminOpen || commentsOpen || storiesOpen || fullscreenOpen || notFeed) {
+    tg.BackButton.show();
+  } else {
+    tg.BackButton.hide();
+  }
+}
+
+if (tg) {
+  tg.BackButton.onClick(() => {
+    if (document.getElementById('adminPanel').classList.contains('open')) { closeAdminPanel(); updateBackButton(); return; }
+    if (document.getElementById('commentsSheet').classList.contains('open')) { closeComments(); updateBackButton(); return; }
+    if (document.getElementById('storiesViewer').classList.contains('open')) { closeStories(); updateBackButton(); return; }
+    if (document.getElementById('fullscreenViewer').classList.contains('open')) { closeFullscreen(); updateBackButton(); return; }
+    if (currentScreen !== 'feed') { switchScreen('feed', document.getElementById('nav-feed')); updateBackButton(); return; }
+  });
+}
+
+// Touch swipe support for carousel
+let touchStartX = 0;
+document.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+document.addEventListener('touchend', (e) => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) < 50) return;
+  // Story viewer swipe
+  if (document.getElementById('storiesViewer').classList.contains('open')) {
+    if (dx < 0 && storyIndex + 1 < storySet.length) { clearTimeout(storyTimer); loadStory(storyIndex + 1); }
+    else if (dx > 0 && storyIndex > 0) { clearTimeout(storyTimer); loadStory(storyIndex - 1); }
+    else if (dx < 0) closeStories();
+  }
+}, { passive: true });
+
+// Handle deep link (?post=ID)
+const urlParams = new URLSearchParams(window.location.search);
+const deepPostId = urlParams.get('post');
+if (deepPostId) {
+  setTimeout(() => {
+    const el = document.getElementById(`post-${deepPostId}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 2000);
+}
+
+/* ═══════════════════════════════════════
+   START
+═══════════════════════════════════════ */
+init();
+</script>
 </body>
 </html>
