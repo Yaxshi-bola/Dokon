@@ -102,7 +102,6 @@
       position: relative; 
       width: 100%; 
       aspect-ratio: 1 / 1; /* Kvadrat format */
-      max-height: 400px;
       overflow: hidden; 
       background: #050505; 
     }
@@ -211,6 +210,24 @@
     #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-20px); z-index: 9999; background: rgba(30,30,30,0.95); border: 1px solid var(--border-glass); padding: 12px 24px; border-radius: 30px; font-size: 13px; opacity: 0; transition: 0.4s; display: flex; align-items: center; gap: 8px; color: white; pointer-events: none; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .empty-state { padding: 60px 20px; text-align: center; color: var(--text-tertiary); display: flex; flex-direction: column; align-items: center; gap: 12px; }
+
+    /* FULLSCREEN VIEWER UPDATED */
+    #fullscreenViewer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      background: rgba(0,0,0,0.95);
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px; /* Safe padding from edges */
+    }
+    #fullscreenImg {
+      max-width: 100%;
+      max-height: 100vh;
+      object-fit: contain; /* Prevents stretching or zooming */
+    }
   </style>
 </head>
 <body>
@@ -297,9 +314,9 @@
 </div>
 
 <!-- FULLSCREEN VIEWER -->
-<div id="fullscreenViewer" style="display:none;position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,0.95);flex-direction:column;justify-content:center;align-items:center;">
-  <div style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:var(--bg-glass);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="closeFullscreen()"><i data-lucide="x"></i></div>
-  <img id="fullscreenImg" src="" style="max-width:100%;max-height:100vh;object-fit:contain;" onerror="this.src='https://via.placeholder.com/800?text=Xato+Link'" />
+<div id="fullscreenViewer">
+  <div style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:var(--bg-glass);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index: 3001;" onclick="closeFullscreen()"><i data-lucide="x"></i></div>
+  <img id="fullscreenImg" src="" onerror="this.src='https://via.placeholder.com/800?text=Xato+Link'" />
 </div>
 
 <!-- FAB (ADMIN ONLY) -->
