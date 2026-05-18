@@ -72,7 +72,7 @@
     .nav-item.active .lucide { stroke-width: 2.5; }
     .nav-label { font-size: 11px; font-weight: 600; }
 
-    /* Screens - FIXED PADDING */
+    /* Screens */
     .screen { display: none; min-height: 100vh; padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 120px); }
     .screen.active { display: block; animation: fadeIn 0.3s ease; }
     @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
@@ -92,12 +92,12 @@
     /* Post Card */
     .post-card { margin: 0 16px 20px; border-radius: 24px; overflow: hidden; }
     .post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
-    .post-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--bg-glass); border: 1px solid var(--border-glass); }
+    .post-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; }
     .post-user-info { flex: 1; }
     .post-username { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .post-time { font-size: 12px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
     
-    /* Post Images - Fixed Aspect Ratio and Size */
+    /* Post Images - Carousel Update */
     .post-images { 
       position: relative; 
       width: 100%; 
@@ -105,16 +105,48 @@
       max-height: 480px;
       overflow: hidden; 
       background: #050505; 
+    }
+    .carousel-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none; /* Firefox */
+      -webkit-overflow-scrolling: touch;
+    }
+    .carousel-container::-webkit-scrollbar { display: none; }
+    .carousel-slide {
+      flex: 0 0 100%;
+      height: 100%;
+      scroll-snap-align: start;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .post-images img { 
+    .carousel-slide img { 
       width: 100%; 
       height: 100%; 
       object-fit: cover;
       cursor: pointer;
     }
+    .carousel-indicator {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 10;
+      background: rgba(0,0,0,0.3);
+      padding: 4px 8px;
+      border-radius: 10px;
+      backdrop-filter: blur(4px);
+    }
+    .indicator-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.4); transition: 0.3s;
+    }
+    .indicator-dot.active { background: #ffffff; transform: scale(1.2); }
 
     .post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 8px; }
     .action-btn { display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--text-secondary); transition: 0.2s; }
@@ -168,7 +200,7 @@
     .form-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; display: block; }
     .form-input, .form-textarea, .form-select { width: 100%; background: var(--bg-glass); border: 1px solid var(--border-glass); border-radius: 14px; padding: 12px 16px; color: white; outline: none; }
     .btn-primary { width: 100%; background: var(--accent); color: white; padding: 16px; border-radius: 16px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .btn-secondary { background: var(--bg-glass); color: white; border: 1px solid var(--border-glass); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: var(--bg-glass); color: white; border: 1px solid var(--border-glass); padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-danger { background: rgba(255,55,95,0.15); color: var(--accent-pink); border: 1px solid rgba(255,55,95,0.3); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 
     /* Utilities */
@@ -220,7 +252,7 @@
     <div style="padding:16px;">
       <div style="background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:16px;display:flex;align-items:center;padding:0 16px;">
         <i data-lucide="search" style="color:var(--text-tertiary);"></i>
-        <input type="text" placeholder="Qidirish..." style="width:100%;background:transparent;border:none;padding:16px;color:white;outline:none;" oninput="onSearch(this.value)" />
+        <input type="text" placeholder="Qidirish (Nomi yoki tavsifi)..." style="width:100%;background:transparent;border:none;padding:16px;color:white;outline:none;" oninput="onSearch(this.value)" id="searchInput" />
       </div>
     </div>
     <div id="searchResults"></div>
@@ -313,12 +345,17 @@
     </div>
     <div class="form-group"><label class="form-label">Narx</label><input class="form-input" id="postPrice" type="text" placeholder="12 500 000 so'm" /></div>
     <div class="form-group"><label class="form-label">Hashtaglar</label><input class="form-input" id="postTags" type="text" placeholder="#iphone #apple" /></div>
+    
     <div class="form-group">
-      <label class="form-label">Rasm yuklash</label>
+      <label class="form-label">Rasmlar (Bir nechta yuklash mumkin)</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input class="form-input" id="postImageUrl" type="text" placeholder="URL manzil (https://...)" style="flex:1;" />
+        <div class="btn-secondary" style="display:flex;align-items:center;gap:6px;" onclick="addImageFromUrl()"><i data-lucide="link" style="width:16px;"></i> Qo'shish</div>
+      </div>
       <div style="border:2px dashed var(--border-glass-strong);border-radius:16px;padding:30px;text-align:center;position:relative;">
         <input type="file" multiple accept="image/*" onchange="handleImageUpload(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
         <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--text-secondary);margin-bottom:10px;"></i>
-        <div style="font-size:14px;font-weight:600;">Rasm tanlang yoki shu yerga tashlang</div>
+        <div style="font-size:14px;font-weight:600;">Rasm fayllarini tanlang yoki shu yerga tashlang</div>
       </div>
       <div id="imagePreviewGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;"></div>
     </div>
@@ -335,7 +372,11 @@
   <div id="admin-stories" class="admin-section">
     <div class="form-group"><label class="form-label">Nomi</label><input class="form-input" id="storyName" type="text" placeholder="Yangi chegirma!" /></div>
     <div class="form-group">
-      <label class="form-label">Rasm</label>
+      <label class="form-label">Rasm URL yoki Yuklash</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input class="form-input" id="storyImageUrl" type="text" placeholder="URL manzil (https://...)" style="flex:1;" />
+        <div class="btn-secondary" style="display:flex;align-items:center;gap:6px;" onclick="addStoryFromUrl()"><i data-lucide="link" style="width:16px;"></i> Ok</div>
+      </div>
       <div style="border:2px dashed var(--border-glass-strong);border-radius:16px;padding:20px;text-align:center;position:relative;">
         <input type="file" accept="image/*" onchange="handleStoryUpload(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
         <i data-lucide="image" style="width:30px;height:30px;color:var(--text-secondary);"></i>
@@ -391,9 +432,9 @@ let commentsData = {};
 let usersData = [];
 let notifsData = [];
 
-// Har bir foydalanuvchining shaxsiy layk va saqlaganlari
 let userLikes = [];
 let userSaves = [];
+let viewedPosts = new Set(); // Ko'rilgan postlarni qayta count qilmaslik uchun
 
 let currentFilter = 'all';
 let isAdmin = false;
@@ -407,13 +448,38 @@ let tgUser = null;
 if (tg) {
   tg.ready(); tg.expand();
   tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000');
-  tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test' }; // Fallback for local testing
+  tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test' };
 } else {
   tgUser = { id: 'browser_user', first_name: 'Browser' };
 }
 
 if (tgUser) {
   isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID) || tgUser.id === 'browser_user';
+}
+
+/* ═══════════════════════════════════════
+   VIEWS OBSERVER (Ekranda ko'ringanda views oshadi)
+═══════════════════════════════════════ */
+const viewObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const postId = parseInt(entry.target.getAttribute('data-id'));
+      incrementViewCount(postId);
+      viewObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.5 }); // Postning yarmi ko'ringanda ishlaydi
+
+async function incrementViewCount(id) {
+  if (viewedPosts.has(id)) return;
+  viewedPosts.add(id);
+  const p = postsData.find(x => x.id === id);
+  if(!p) return;
+  p.views = (p.views || 0) + 1;
+  const el = document.getElementById(`views-count-${id}`);
+  if (el) el.innerHTML = `<i data-lucide="eye" style="width:14px;height:14px;display:inline-block;vertical-align:middle;"></i> ${p.views} marta ko'rildi`;
+  lucide.createIcons();
+  if(db) await db.from('posts').update({views: p.views}).eq('id', id);
 }
 
 /* ═══════════════════════════════════════
@@ -449,7 +515,6 @@ async function init() {
 async function loadFromDB() {
   if(!db) return;
   try {
-    // Shaxsiy layk va saqlanganlarni yuklash
     if (tgUser) {
       const [{ data: lData }, { data: sData }] = await Promise.all([
         db.from('likes').select('post_id').eq('user_id', String(tgUser.id)),
@@ -466,7 +531,6 @@ async function loadFromDB() {
         liked: userLikes.includes(row.id), 
         saved: userSaves.includes(row.id)
       }));
-      // Qadalgan postlarni eng tepaga chiqarish
       postsData.sort((a,b) => (b.pinned===a.pinned) ? 0 : (b.pinned ? 1 : -1));
     }
     
@@ -479,7 +543,6 @@ async function loadFromDB() {
     const { data: n } = await db.from('notifications').select('*').order('sent_at', {ascending: false});
     if (n) {
       notifsData = n;
-      // Agar yangiliklar bo'lsa, qizil belgi chiqarish
       if(notifsData.length > 0) {
         document.getElementById('topNotifBadge').textContent = notifsData.length;
         document.getElementById('topNotifBadge').style.display = 'flex';
@@ -502,45 +565,84 @@ function renderFeed() {
     lucide.createIcons(); return;
   }
 
-  feed.innerHTML = filtered.map((p) => `
-    <div class="post-card glass-card" id="post-${p.id}">
-      <div class="post-header">
-        <div class="post-avatar"><i data-lucide="diamond" style="color:var(--accent);width:24px;height:24px;"></i></div>
-        <div class="post-user-info">
-          <div class="post-username">MMR MOBILE <i data-lucide="check-circle" class="verified-badge" style="width:14px;color:var(--accent);"></i> ${p.pinned ? '<i data-lucide="pin" style="width:14px;color:var(--accent-gold);margin-left:4px;"></i>' : ''}</div>
-          <div class="post-time">${formatTime(p.created_at)}</div>
+  feed.innerHTML = filtered.map((p) => {
+    // Rasmlarni slayd qilish uchun mantiq
+    let imagesHtml = '';
+    if (p.images && p.images.length > 1) {
+      imagesHtml = `
+        <div class="carousel-container" onscroll="updateCarouselIndicator(this, ${p.id})">
+          ${p.images.map((img) => `
+            <div class="carousel-slide">
+              <img src="${img}" onclick="openFullscreen(this.src)" />
+            </div>
+          `).join('')}
         </div>
-      </div>
-      
-      <div class="post-images">
-        <img src="${(p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'}" onclick="openFullscreen(this.src)" />
-      </div>
+        <div class="carousel-indicator" id="indicator-${p.id}">
+          ${p.images.map((_, i) => `<div class="indicator-dot ${i===0?'active':''}"></div>`).join('')}
+        </div>
+      `;
+    } else {
+      const imgSrc = (p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800';
+      imagesHtml = `<img src="${imgSrc}" onclick="openFullscreen(this.src)" />`;
+    }
 
-      <div class="post-actions">
-        <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)">
-          <i data-lucide="heart"></i> <span style="font-size:13px;font-weight:600;">${p.likes || 0}</span>
+    return `
+      <div class="post-card glass-card" id="post-${p.id}" data-id="${p.id}">
+        <div class="post-header">
+          <div class="post-avatar"><i data-lucide="diamond" style="color:var(--accent);width:24px;height:24px;"></i></div>
+          <div class="post-user-info">
+            <div class="post-username">MMR MOBILE <i data-lucide="check-circle" class="verified-badge" style="width:14px;color:var(--accent);"></i> ${p.pinned ? '<i data-lucide="pin" style="width:14px;color:var(--accent-gold);margin-left:4px;"></i>' : ''}</div>
+            <div class="post-time">${formatTime(p.created_at)}</div>
+          </div>
         </div>
-        <div class="action-btn" onclick="openComments(${p.id})">
-          <i data-lucide="message-circle"></i> <span style="font-size:13px;font-weight:600;">${p.comments_count || 0}</span>
+        
+        <div class="post-images">
+          ${imagesHtml}
         </div>
-        <div class="action-btn" onclick="sharePost(${p.id})"><i data-lucide="send"></i></div>
-        <div class="action-sep"></div>
-        <div class="action-btn action-btn-save ${p.saved ? 'saved' : ''}" onclick="toggleSave(${p.id}, this)"><i data-lucide="bookmark"></i></div>
+
+        <div class="post-actions">
+          <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)">
+            <i data-lucide="heart"></i> <span style="font-size:13px;font-weight:600;">${p.likes || 0}</span>
+          </div>
+          <div class="action-btn" onclick="openComments(${p.id})">
+            <i data-lucide="message-circle"></i> <span style="font-size:13px;font-weight:600;">${p.comments_count || 0}</span>
+          </div>
+          <div class="action-btn" onclick="sharePost(${p.id})"><i data-lucide="send"></i></div>
+          <div class="action-sep"></div>
+          <div class="action-btn action-btn-save ${p.saved ? 'saved' : ''}" onclick="toggleSave(${p.id}, this)"><i data-lucide="bookmark"></i></div>
+        </div>
+        <div class="product-info">
+          <div class="views-count" id="views-count-${p.id}"><i data-lucide="eye" style="width:14px;"></i> ${p.views || 0} marta ko'rildi</div>
+          <div><span class="product-title">${p.title}</span><span class="product-desc">${p.description || ''}</span></div>
+          ${p.price ? `<div class="product-price">${p.price}</div>` : ''}
+          <div class="product-tags">${(p.tags||[]).map(t=>`<span class="product-tag">${t}</span>`).join('')}</div>
+        </div>
+        <div class="contact-admin-btn" onclick="contactAdmin('${p.title}')">
+          <i data-lucide="message-square"></i>
+          <div class="text">Adminga murojaat qilish</div>
+          <i data-lucide="chevron-right" style="margin-left:auto;color:var(--text-tertiary);"></i>
+        </div>
       </div>
-      <div class="product-info">
-        <div class="views-count"><i data-lucide="eye" style="width:14px;"></i> ${p.views || 0} marta ko'rildi</div>
-        <div><span class="product-title">${p.title}</span><span class="product-desc">${p.description || ''}</span></div>
-        ${p.price ? `<div class="product-price">${p.price}</div>` : ''}
-        <div class="product-tags">${(p.tags||[]).map(t=>`<span class="product-tag">${t}</span>`).join('')}</div>
-      </div>
-      <div class="contact-admin-btn" onclick="contactAdmin('${p.title}')">
-        <i data-lucide="message-square"></i>
-        <div class="text">Adminga murojaat qilish</div>
-        <i data-lucide="chevron-right" style="margin-left:auto;color:var(--text-tertiary);"></i>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
+  
   lucide.createIcons();
+
+  // Observerlarni yoqamiz
+  setTimeout(() => {
+    document.querySelectorAll('.post-card').forEach(card => viewObserver.observe(card));
+  }, 300);
+}
+
+function updateCarouselIndicator(el, postId) {
+  const scrollLeft = el.scrollLeft;
+  const width = el.offsetWidth;
+  const index = Math.round(scrollLeft / width);
+  const dots = document.querySelectorAll(`#indicator-${postId} .indicator-dot`);
+  dots.forEach((dot, i) => {
+    if (i === index) dot.classList.add('active');
+    else dot.classList.remove('active');
+  });
 }
 
 function filterPosts(type, el) {
@@ -550,7 +652,7 @@ function filterPosts(type, el) {
   renderFeed();
 }
 
-// LIKES (Bazaga bog'landi)
+// LIKES
 function toggleLike(id, btn) {
   const p = postsData.find(x => x.id === id);
   if(!p || !tgUser) return;
@@ -566,7 +668,7 @@ function toggleLike(id, btn) {
   tg?.HapticFeedback?.impactOccurred('light');
 }
 
-// SAVES (Bazaga bog'landi)
+// SAVES
 function toggleSave(id, btn) {
   const p = postsData.find(x => x.id === id);
   if(!p || !tgUser) return;
@@ -579,7 +681,7 @@ function toggleSave(id, btn) {
   
   showToast(p.saved ? "Saqlandi" : "Olib tashlandi");
   renderFeed();
-  renderProfile(); // Profilni ham darxol yangilaymiz
+  renderProfile();
   tg?.HapticFeedback?.selectionChanged();
 }
 
@@ -699,6 +801,7 @@ function renderNotifications() {
 function renderProfile() {
   const el = document.getElementById('profileContent');
   const name = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Mehmon';
+  
   const saved = postsData.filter(p=>p.saved);
   
   el.innerHTML = `
@@ -747,14 +850,41 @@ function loadAdminDashboard() {
   document.getElementById('statLikes').textContent = postsData.reduce((acc, p) => acc + (p.likes||0), 0);
 }
 
+// RASM YUKLASH VA URL
+function renderImagePreviewGrid() {
+  const grid = document.getElementById('imagePreviewGrid');
+  grid.innerHTML = uploadedImages.map((src, idx) => `
+    <div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);position:relative;">
+      <img src="${src}" style="width:100%;height:100%;object-fit:cover;" />
+      <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="removeUploadedImage(${idx})"><i data-lucide="x" style="width:12px;height:12px;"></i></div>
+    </div>
+  `).join('');
+  lucide.createIcons();
+}
+
+function addImageFromUrl() {
+  const url = document.getElementById('postImageUrl').value.trim();
+  if(!url) return;
+  uploadedImages.push(url);
+  document.getElementById('postImageUrl').value = '';
+  renderImagePreviewGrid();
+}
+
 function handleImageUpload(e) {
-  const file = e.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    uploadedImages.push(ev.target.result);
-    document.getElementById('imagePreviewGrid').innerHTML += `<div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);"><img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" /></div>`;
-  };
-  reader.readAsDataURL(file);
+  const files = e.target.files; if(!files.length) return;
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      uploadedImages.push(ev.target.result);
+      renderImagePreviewGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeUploadedImage(idx) {
+  uploadedImages.splice(idx, 1);
+  renderImagePreviewGrid();
 }
 
 async function createPost() {
@@ -771,7 +901,7 @@ async function createPost() {
   
   postsData.unshift({...p, liked:false, saved:false}); showToast('Post saqlandi!');
   ['postTitle','postDesc','postPrice','postTags'].forEach(id => document.getElementById(id).value='');
-  document.getElementById('imagePreviewGrid').innerHTML=''; uploadedImages=[];
+  uploadedImages=[]; renderImagePreviewGrid();
   renderFeed(); closeAdminPanel();
 }
 
@@ -795,7 +925,6 @@ function renderAdminPosts() {
   `).join('');
   lucide.createIcons();
 }
-function filterAdminPosts(q) { /* Filter logic... */ }
 
 async function deletePost(id) {
   postsData = postsData.filter(p => p.id !== id);
@@ -815,14 +944,19 @@ async function togglePinPost(id) {
 // Stories
 function handleStoryUpload(e) {
   const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader(); r.onload = (ev) => { storyUploadedImage = ev.target.result; showToast('Rasm tayyor, Qo\'shishni bosing'); }; r.readAsDataURL(f);
+  const r = new FileReader(); r.onload = (ev) => { storyUploadedImage = ev.target.result; showToast('Rasm tayyorlandi, Ok ni bosing'); }; r.readAsDataURL(f);
 }
+function addStoryFromUrl() {
+  const url = document.getElementById('storyImageUrl').value;
+  if(url) { storyUploadedImage = url; showToast('URL tayyorlandi, Ok ni bosing'); }
+}
+
 async function createStory() {
   const name = document.getElementById('storyName').value;
   if(!name || !storyUploadedImage) { showToast('Nomi va rasm kerak!'); return; }
   const s = { id: Date.now(), name, image: storyUploadedImage, created_at: new Date().toISOString() };
   if(db) { const { error } = await db.from('stories').insert(s); if(error) { showToast("Xato: " + error.message); return; } }
-  storiesData.unshift(s); document.getElementById('storyName').value=''; storyUploadedImage=null;
+  storiesData.unshift(s); document.getElementById('storyName').value=''; document.getElementById('storyImageUrl').value=''; storyUploadedImage=null;
   renderStories(); renderAdminStoriesList(); showToast('Story saqlandi!'); closeAdminPanel();
 }
 async function deleteStory(id) {
@@ -864,7 +998,6 @@ async function sendNotification() {
   document.getElementById('notifTitle').value=''; document.getElementById('notifMessage').value='';
   renderNotifications(); showToast('Yuborildi');
   
-  // Real-time badge ko'rsatish
   document.getElementById('topNotifBadge').textContent = notifsData.length;
   document.getElementById('topNotifBadge').style.display = 'flex';
   document.getElementById('navNotifBadge').textContent = notifsData.length;
@@ -894,7 +1027,6 @@ function switchScreen(name, el) {
   document.getElementById('appHeader').style.display = name === 'feed' ? 'flex' : 'none';
   window.scrollTo(0,0);
 
-  // Xabarlarga kirganda badge (qizil nuqta) ni tozalash
   if(name === 'notifications') {
     document.getElementById('topNotifBadge').style.display = 'none';
     document.getElementById('navNotifBadge').style.display = 'none';
@@ -902,13 +1034,29 @@ function switchScreen(name, el) {
 }
 
 function openSearch() { switchScreen('search', document.getElementById('nav-search')); document.getElementById('searchInput').focus(); }
+
 function onSearch(q) {
-  const res = postsData.filter(p => p.title.toLowerCase().includes(q.toLowerCase()));
+  if (!q) {
+    document.getElementById('searchResults').innerHTML = '';
+    return;
+  }
+  const res = postsData.filter(p => p.title.toLowerCase().includes(q.toLowerCase()) || (p.description && p.description.toLowerCase().includes(q.toLowerCase())));
+  
+  if (res.length === 0) {
+    document.getElementById('searchResults').innerHTML = `<div class="empty-state"><i data-lucide="search-x"></i><div class="empty-state-title">Hech narsa topilmadi</div></div>`;
+    lucide.createIcons(); return;
+  }
+
   document.getElementById('searchResults').innerHTML = res.map(p => `
-    <div style="padding:16px;border-bottom:1px solid var(--border-glass);" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);">
-      <div style="font-weight:700;">${p.title}</div><div style="font-size:12px;color:var(--text-secondary);">${p.price || ''}</div>
+    <div style="padding:16px;border-bottom:1px solid var(--border-glass);display:flex;gap:12px;align-items:center;cursor:pointer;" onclick="switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth', block:'center'})}, 300);">
+      <img src="${p.images[0]}" style="width:50px;height:50px;border-radius:10px;object-fit:cover;" />
+      <div>
+        <div style="font-weight:700;">${p.title}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600;">${p.price || ''}</div>
+      </div>
     </div>
   `).join('');
+  lucide.createIcons();
 }
 
 function showToast(msg) {
