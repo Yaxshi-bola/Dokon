@@ -370,8 +370,10 @@
    CONFIG
 ═══════════════════════════════════════ */
 const CONFIG = {
-  SUPABASE_URL: 'YOUR_SUPABASE_URL', 
-  SUPABASE_ANON_KEY: 'YOUR_SUPABASE_ANON_KEY',
+  // SIZNING SUPABASE MANZILLARINGIZ (To'g'ridan-to'g'ri biriktirildi)
+  SUPABASE_URL: 'https://qbradygfmigzlqxrvhyz.supabase.co', 
+  SUPABASE_ANON_KEY: 'sb_publishable_rBGM_8MqI4giNF1QuY6cVA_yjebMuz5',
+  
   ADMIN_TELEGRAM_ID: '8544023815', // Admin ID
   ADMIN_USERNAME: 'yomonboIa', 
   APP_URL: window.location.origin,
@@ -381,7 +383,6 @@ const CONFIG = {
    STATE & DATA
 ═══════════════════════════════════════ */
 let db = null;
-// Bo'sh boshlanadi (faqat haqiqiy bazadan o'qiydi yoki admin qo'shganda chiqadi)
 let postsData = [];
 let storiesData = [];
 let commentsData = {};
@@ -407,18 +408,18 @@ if (tg) {
 if (tgUser) {
   isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID);
 } else {
-  isAdmin = true; // TEST UCHUN BROWSERDA ADMIN QILIB QO'YILDI. Telegramda o'z id ngiz bo'ladi.
+  isAdmin = true; // Web brauzer orqali test qilish uchun. Telegramda uzil-kesil ishlaydi.
 }
 
 /* ═══════════════════════════════════════
    INIT
 ═══════════════════════════════════════ */
 async function init() {
-  if (CONFIG.SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+  if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.startsWith('http')) {
     db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
     await loadFromDB();
   } else {
-    console.warn("Supabase ulanmagan!");
+    showToast("Diqqat! Supabase ulanmagan!");
   }
   
   if (isAdmin) { document.getElementById('fabBtn').classList.add('visible'); }
@@ -443,15 +444,18 @@ async function init() {
 async function loadFromDB() {
   if(!db) return;
   try {
-    const { data: p } = await db.from('posts').select('*').order('created_at', {ascending: false});
-    if(p) postsData = p.map(row => ({...row, liked: false, saved: false}));
+    const { data: p, error } = await db.from('posts').select('*').order('created_at', {ascending: false});
+    if (error) console.error("Postlarni yuklashda xato:", error);
+    if (p) postsData = p.map(row => ({...row, liked: false, saved: false}));
     
     const { data: u } = await db.from('users').select('*');
     if(u) usersData = u;
     
     const { data: n } = await db.from('notifications').select('*').order('sent_at', {ascending: false});
     if(n) notifsData = n;
-  } catch(e) {}
+  } catch(e) {
+    console.error("Bazaga ulanish xatosi:", e);
+  }
 }
 
 /* ═══════════════════════════════════════
@@ -478,7 +482,6 @@ function renderFeed() {
         ${isAdmin ? `<div style="cursor:pointer;" onclick="deletePost(${p.id})"><i data-lucide="trash-2" style="color:var(--accent-pink);"></i></div>` : ''}
       </div>
       
-      <!-- Modified Post Images logic -->
       <div class="post-images">
         <img src="${(p.images && p.images[0]) ? p.images[0] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'}" onclick="openFullscreen(this.src)" />
       </div>
@@ -742,12 +745,24 @@ async function createPost() {
     images: uploadedImages.length ? uploadedImages : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'],
     created_at: new Date().toISOString(), likes: 0, views: 0, comments_count: 0
   };
+  
   if(!p.title) { showToast('Sarlavha kiriting!'); return; }
   
-  postsData.unshift(p);
-  if(db) await db.from('posts').insert(p);
+  // Haqiqiy Bazaga yuborish qismi (endi xatolikni aytadi)
+  if(db) {
+    const { error } = await db.from('posts').insert(p);
+    if(error) {
+      showToast("Xato (Saqlanmadi): " + error.message);
+      return;
+    }
+  } else {
+    showToast("DIQQAT: Supabase ulanmagan!");
+    return;
+  }
   
-  showToast('Post yaratildi!');
+  postsData.unshift(p);
+  showToast('Post muvaffaqiyatli saqlandi!');
+  
   ['postTitle','postDesc','postPrice','postTags'].forEach(id => document.getElementById(id).value='');
   document.getElementById('imagePreviewGrid').innerHTML=''; uploadedImages=[];
   renderFeed(); closeAdminPanel();
