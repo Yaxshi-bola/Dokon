@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#000000" />
-  <title>LUXE SHOP — Premium Mini App</title>
+  <title>MMR — MObile Market Rahmatillo</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -503,14 +503,14 @@
 <!-- Loading Screen -->
 <div id="loadingScreen" style="position:fixed;inset:0;z-index:9999;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
   <div style="font-size:48px;">✦</div>
-  <div style="font-size:28px;font-weight:900;letter-spacing:-1px;">LUXE SHOP</div>
+  <div style="font-size:28px;font-weight:900;letter-spacing:-1px;">MMR MOBILE</div>
   <div style="color:rgba(255,255,255,0.4);font-size:14px;font-weight:500;">Premium Mini App</div>
   <div class="spinner" style="margin-top:8px;"></div>
 </div>
 
 <!-- App Header (Feed screen) -->
 <div id="appHeader" style="display:none;">
-  <div class="app-logo">LUXE<span>✦</span>SHOP</div>
+  <div class="app-logo">MMR<span>✦</span>MOBILE</div>
   <div class="header-actions">
     <div class="header-btn" onclick="openSearch()" title="Search">🔍</div>
     <div class="header-btn" style="position:relative;" onclick="showNotifications()">
@@ -652,7 +652,7 @@
     <div class="admin-back" onclick="closeAdminPanel()">←</div>
     <div>
       <div class="admin-title">Admin Panel</div>
-      <div class="admin-subtitle">LUXE SHOP Management</div>
+      <div class="admin-subtitle">MMR mobile Management</div>
     </div>
     <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
       <div class="online-dot"></div>
@@ -1173,7 +1173,7 @@ function renderPostCard(post, index) {
       <div class="post-avatar"><img src="${DEMO_IMAGES.avatars[0]}" alt="admin" loading="lazy" /></div>
       <div class="post-user-info">
         <div class="post-username">
-          LUXE<span style="color:var(--accent)">✦</span>SHOP
+          MMR<span style="color:var(--accent)">✦</span>MOBILE
           <span class="verified-badge">✓</span>
           ${post.pinned ? '<span class="pinned-badge">📌 PINNED</span>' : ''}
         </div>
@@ -1782,7 +1782,7 @@ function renderProfile() {
         </div>
         ${isAdmin ? '<div style="background:linear-gradient(135deg,var(--accent),var(--accent-purple));color:white;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;" onclick="openAdminPanel()">⚙️ Admin Panel</div>' : ''}
       </div>
-      <div class="profile-bio">LUXE SHOP — Premium mahsulotlar va yangiliklar. Eng yaxshi narxlar kafolatlangan. ✨</div>
+      <div class="profile-bio">MMR MOBILE — Premium mahsulotlar va yangiliklar. Eng yaxshi narxlar kafolatlangan. ✨</div>
       <div class="profile-stats">
         <div class="profile-stat">
           <div class="profile-stat-num">${demoPosts.length}</div>
