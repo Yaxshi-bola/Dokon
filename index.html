@@ -55,7 +55,7 @@
 
     #appHeader {
       position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(30px);
-      border-bottom: 1px solid var(--border-glass); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border-glass); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
     }
     .app-logo { font-size: 21px; font-weight: 900; letter-spacing: -0.7px; display: flex; align-items: center; gap: 7px; background: linear-gradient(to right, #ffffff, #a2a2a2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .header-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-primary); }
@@ -68,13 +68,13 @@
       padding-bottom: var(--safe-bottom); background: rgba(5, 5, 8, 0.85); backdrop-filter: blur(40px);
       border-top: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: space-around; z-index: 1000;
     }
-    .nav-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px; color: var(--text-tertiary); transition: all 0.25s ease; cursor: pointer; flex: 1; }
+    .nav-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 8px; color: var(--text-tertiary); transition: all 0.25s ease; cursor: pointer; flex: 1; }
     .nav-item.active { color: var(--accent); }
     .nav-item.active .lucide { stroke-width: 2.3; transform: scale(1.08); }
-    .nav-label { font-size: 11px; font-weight: 600; letter-spacing: 0.1px; }
+    .nav-label { font-size: 11px; font-weight: 600; }
 
     /* Screens */
-    .screen { display: none; min-height: 100vh; padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 100px); }
+    .screen { display: none; min-height: 100vh; padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 120px); }
     .screen.active { display: block; animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
     @keyframes fadeIn { from {opacity:0; transform: translateY(6px);} to {opacity:1; transform: translateY(0);} }
 
@@ -94,11 +94,12 @@
     .post-card { margin: 0 16px 20px; border-radius: 24px; overflow: hidden; transition: transform 0.2s ease; }
     .post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
     .post-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; }
+    .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .post-user-info { flex: 1; }
     .post-username { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 4px; }
     .post-time { font-size: 11px; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; margin-top: 2px; }
     
-    /* ─── OPTIMIZATSIYA: Rasmlar aslo qirqilmaydi va joyida turadi ─── */
+    /* Rasmlar qirqilmaydi va joyida turadi */
     .post-images { 
       position: relative; 
       width: 100%; 
@@ -122,7 +123,7 @@
       align-items: center;
       justify-content: center;
     }
-    .carousel-slide img { 
+    .carousel-slide img, .carousel-slide video { 
       width: 100%; 
       max-height: 480px; 
       height: auto; 
@@ -154,6 +155,45 @@
       padding: 4px 10px; border-radius: 12px;
     }
 
+    /* Reels View (Vertical Fullscreen Mode) */
+    .reels-mode .post-card {
+      margin: 0;
+      height: calc(100vh - var(--nav-height) - var(--safe-bottom));
+      scroll-snap-align: start;
+      border-radius: 0;
+      background: #000;
+      position: relative;
+    }
+    .reels-mode .post-images {
+      height: 100%;
+      max-height: 100%;
+      aspect-ratio: auto;
+    }
+    .reels-mode .carousel-slide, .reels-mode .carousel-slide video {
+      height: 100%;
+      max-height: 100%;
+      object-fit: cover;
+    }
+    .reels-mode .reels-overlay {
+      position: absolute;
+      bottom: 20px;
+      left: 16px;
+      right: 70px;
+      z-index: 20;
+      pointer-events: none;
+    }
+    .reels-mode .reels-overlay * { pointer-events: auto; }
+    .reels-mode .reels-side-actions {
+      position: absolute;
+      right: 12px;
+      bottom: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 20;
+      align-items: center;
+    }
+
     .post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 8px; }
     .action-btn { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease; }
     .action-btn:active { transform: scale(0.85); }
@@ -182,7 +222,8 @@
     
     /* Comments */
     .comment-item { display: flex; gap: 10px; padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.03); }
-    .comment-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-glass); overflow: hidden; flex-shrink: 0; }
+    .comment-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--bg-glass); overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .comment-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
     .comment-author { font-size: 13px; font-weight: 700; }
     .comment-text { font-size: 13px; color: var(--text-secondary); margin-top: 3px; line-height: 1.4; }
     .comment-time { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; }
@@ -210,7 +251,7 @@
     .form-input:focus, .form-textarea:focus, .form-select:focus { border-color: var(--accent); }
     .btn-primary { width: 100%; background: var(--accent); color: white; padding: 16px; border-radius: 16px; font-weight: 700; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; }
     .btn-primary:active { transform: scale(0.96); opacity: 0.9; }
-    .btn-secondary { background: var(--bg-glass); color: white; border: 1px solid var(--border-glass); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-secondary { background: var(--bg-glass); color: white; border: 1px solid var(--border-glass); padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
     .btn-danger { background: rgba(255,55,95,0.12); color: var(--accent-pink); border: 1px solid rgba(255,55,95,0.25); padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; }
 
     /* Utilities */
@@ -223,7 +264,7 @@
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     .empty-state { padding: 60px 20px; text-align: center; color: var(--text-tertiary); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 
-    /* FULLSCREEN VIEWER */
+    /* Fullscreen Viewer */
     #fullscreenViewer {
       display: none;
       position: fixed;
@@ -273,6 +314,7 @@
       <div class="admin-tab active" onclick="filterPosts('all',this)"><i data-lucide="layout-grid"></i> Barchasi</div>
       <div class="admin-tab" onclick="filterPosts('product',this)"><i data-lucide="package"></i> Mahsulotlar</div>
       <div class="admin-tab" onclick="filterPosts('news',this)"><i data-lucide="newspaper"></i> Yangiliklar</div>
+      <div class="admin-tab" onclick="filterPosts('media',this)"><i data-lucide="clapperboard"></i> Qisqa Videolar</div>
     </div>
     <div id="postsFeed"><div class="spinner"></div></div>
   </div>
@@ -320,9 +362,43 @@
     <div style="text-align:center;font-weight:700;padding-bottom:12px;border-bottom:1px solid var(--border-glass);">Izohlar <span id="commentCount" style="color:var(--text-tertiary);font-weight:normal;"></span></div>
     <div id="commentsList" style="flex:1;overflow-y:auto;min-height:220px;"></div>
     <div class="comment-input-area">
+      <div id="commentUserAvatar" style="width:34px;height:34px;border-radius:50%;background:var(--bg-glass);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div>
       <input class="comment-input" id="commentInput" type="text" placeholder="Izoh qoldiring..." />
       <div class="send-btn" onclick="submitComment()"><i data-lucide="send" style="color:white;width:18px;"></i></div>
     </div>
+  </div>
+</div>
+
+<!-- PROFILE EDIT SHEET (Customization Modal) -->
+<div id="profileEditSheet" class="bottom-sheet">
+  <div class="sheet-backdrop" onclick="closeProfileEdit()"></div>
+  <div class="sheet-content" style="padding: 20px 16px calc(20px + var(--safe-bottom));">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:12px auto;"></div>
+    <div style="text-align:center;font-weight:700;font-size:18px;margin-bottom:20px;">Profilni Tahrirlash</div>
+    
+    <div class="form-group">
+      <label class="form-label">Profil Rasmi (Avatar)</label>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+        <div id="editAvatarPreview" style="width:60px;height:60px;border-radius:50%;background:var(--bg-glass-strong);overflow:hidden;display:flex;align-items:center;justify-content:center;">👤</div>
+        <div style="flex:1;">
+          <input type="file" accept="image/*" onchange="handleProfileAvatarUpload(event)" id="profileAvatarFileInput" style="display:none;" />
+          <button class="btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="document.getElementById('profileAvatarFileInput').click()"><i data-lucide="upload-cloud" style="width:14px;height:14px;display:inline;"></i> Rasm tanlash</button>
+        </div>
+      </div>
+      <input class="form-input" id="editAvatarUrl" type="text" placeholder="Rasm URL havolasi (ixtiyoriy)..." oninput="document.getElementById('editAvatarPreview').innerHTML = \`<img src='\${this.value}' style='width:100%;height:100%;object-fit:cover;' />\`" />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ism</label>
+      <input class="form-input" id="editFirstName" type="text" placeholder="Ismingiz..." />
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Familiya</label>
+      <input class="form-input" id="editLastName" type="text" placeholder="Familiyangiz..." />
+    </div>
+
+    <button class="btn-primary" onclick="saveProfileChanges()"><i data-lucide="save"></i> Saqlash</button>
   </div>
 </div>
 
@@ -364,7 +440,7 @@
 
   <!-- CREATE POST -->
   <div id="admin-create" class="admin-section">
-    <div class="form-group"><label class="form-label">Turi</label><select class="form-select" id="postType"><option value="product">Telefon/Mahsulot</option><option value="news">Yangilik</option></select></div>
+    <div class="form-group"><label class="form-label">Turi</label><select class="form-select" id="postType"><option value="product">Telefon/Mahsulot</option><option value="news">Yangilik</option><option value="media">🎬 Qisqa Video (Reels)</option></select></div>
     <div class="form-group">
       <div style="display:flex;justify-content:space-between;"><label class="form-label">Sarlavha</label><span style="color:var(--accent-purple);font-size:12px;cursor:pointer;" onclick="aiGenerate('title')"><i data-lucide="bot" style="width:14px;height:14px;"></i> AI Sarlavha</span></div>
       <input class="form-input" id="postTitle" type="text" placeholder="Masalan: iPhone 15 Pro..." />
@@ -377,15 +453,15 @@
     <div class="form-group"><label class="form-label">Hashtaglar</label><input class="form-input" id="postTags" type="text" placeholder="#iphone #apple" /></div>
     
     <div class="form-group">
-      <label class="form-label">Rasmlar (Bir nechta yuklash mumkin)</label>
+      <label class="form-label">Media Materiallar (Rasm yoki Video)</label>
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        <input class="form-input" id="postImageUrl" type="text" placeholder="URL manzil (https://...)" style="flex:1;" />
+        <input class="form-input" id="postImageUrl" type="text" placeholder="Media URL havolasi (.mp4, .png, .jpg)..." style="flex:1;" />
         <div class="btn-secondary" style="display:flex;align-items:center;gap:6px;" onclick="addImageFromUrl()"><i data-lucide="link" style="width:16px;"></i> Qo'shish</div>
       </div>
       <div style="border:2px dashed var(--border-glass-strong);border-radius:16px;padding:30px;text-align:center;position:relative;">
-        <input type="file" multiple accept="image/*" onchange="handleImageUpload(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+        <input type="file" multiple accept="image/*,video/*" onchange="handleImageUpload(event)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
         <i data-lucide="upload-cloud" style="width:40px;height:40px;color:var(--text-secondary);margin-bottom:10px;"></i>
-        <div style="font-size:14px;font-weight:600;">Rasm fayllarini tanlang yoki shu yerga tashlang</div>
+        <div style="font-size:14px;font-weight:600;">Media fayllarni tanlang yoki shu yerga tashlang</div>
       </div>
       <div id="imagePreviewGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px;"></div>
     </div>
@@ -471,6 +547,7 @@ let isAdmin = false;
 let uploadedImages = [];
 let storyUploadedImage = null;
 let openPostId = null;
+let editProfileAvatarBase64 = null;
 
 const tg = window.Telegram?.WebApp;
 let tgUser = null;
@@ -478,14 +555,28 @@ let tgUser = null;
 if (tg) {
   tg.ready(); tg.expand();
   tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000');
-  tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test' };
+  tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test', last_name: 'User', photo_url: '' };
 } else {
-  tgUser = { id: 'browser_user', first_name: 'Browser' };
+  tgUser = { id: 'browser_user', first_name: 'Browser', last_name: 'User', photo_url: '' };
 }
 
 if (tgUser) {
   isAdmin = String(tgUser.id) === String(CONFIG.ADMIN_TELEGRAM_ID) || tgUser.id === 'browser_user';
 }
+
+/* ═══════════════════════════════════════
+   AUTO-PLAY VIDEO OBSERVER
+═══════════════════════════════════════ */
+const videoObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const video = entry.target;
+    if (entry.isIntersecting) {
+      video.play().catch(e => {});
+    } else {
+      video.pause();
+    }
+  });
+}, { threshold: 0.6 });
 
 /* ═══════════════════════════════════════
    VIEWS OBSERVER 
@@ -532,20 +623,29 @@ async function init() {
   // Foydalanuvchini ro'yxatga olish / yangilash
   if (db && tgUser && tgUser.id !== 'test_user') {
     try {
-      await db.from('users').upsert({
-        telegram_id: String(tgUser.id),
-        first_name: tgUser.first_name || '',
-        last_name: tgUser.last_name || '',
-        username: tgUser.username || '',
-        photo_url: tgUser.photo_url || '',
-        last_seen: new Date().toISOString()
-      }, { onConflict: 'telegram_id' });
+      // Birinchi navbatda foydalanuvchining bazadagi ma'lumotlarini tekshiramiz
+      const { data: dbUser } = await db.from('users').select('*').eq('telegram_id', String(tgUser.id)).maybeSingle();
+      
+      if (dbUser) {
+        // Agar foydalanuvchi rasmni tahrirlagan bo'lsa, o'shani profilga qo'llaymiz
+        tgUser.photo_url = dbUser.photo_url || tgUser.photo_url || '';
+        tgUser.first_name = dbUser.first_name || tgUser.first_name || '';
+        tgUser.last_name = dbUser.last_name || tgUser.last_name || '';
+      } else {
+        await db.from('users').insert({
+          telegram_id: String(tgUser.id),
+          first_name: tgUser.first_name || '',
+          last_name: tgUser.last_name || '',
+          username: tgUser.username || '',
+          photo_url: tgUser.photo_url || '',
+          last_seen: new Date().toISOString()
+        });
+      }
     } catch(e) { console.error("User sync error:", e); }
   }
 
-  // Blazing fast loading: Ma'lumot tayyor bo'lishi bilan loader yo'qoladi!
   const loadDuration = Date.now() - loadingStart;
-  const remainingDelay = Math.max(0, 300 - loadDuration); // minimal 300ms silliqlik uchun
+  const remainingDelay = Math.max(0, 300 - loadDuration); 
 
   setTimeout(() => {
     document.getElementById('loadingScreen').style.opacity = '0';
@@ -612,16 +712,31 @@ function renderFeed() {
     updateIcons(); return;
   }
 
+  const isReelsView = currentFilter === 'media';
+  if (isReelsView) {
+    feed.parentElement.classList.add('reels-mode');
+  } else {
+    feed.parentElement.classList.remove('reels-mode');
+  }
+
   feed.innerHTML = filtered.map((p) => {
     let imagesHtml = '';
     const imagesList = p.images && p.images.length ? p.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
     
+    const renderMediaElement = (url) => {
+      // Agar rasm o'rniga .mp4 video bo'lsa, uni Video Player sifatida ko'rsatamiz
+      if (url.includes('.mp4') || url.startsWith('data:video/')) {
+        return `<video class="lazy-video" src="${url}" loop muted playsinline onclick="toggleVideoPlayback(this)" onerror="this.style.display='none'"></video>`;
+      }
+      return `<img src="${url}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Yuklanmadi'" />`;
+    };
+
     if (imagesList.length > 1) {
       imagesHtml = `
         <div class="carousel-container" onscroll="updateCarouselIndicator(this, ${p.id})">
           ${imagesList.map((img) => `
             <div class="carousel-slide">
-              <img src="${img}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Yuklanmadi'" />
+              ${renderMediaElement(img)}
             </div>
           `).join('')}
         </div>
@@ -634,7 +749,51 @@ function renderFeed() {
       imagesHtml = `
         <div class="carousel-container">
           <div class="carousel-slide">
-             <img src="${imagesList[0]}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Yuklanmadi'" />
+             ${renderMediaElement(imagesList[0])}
+          </div>
+        </div>
+      `;
+    }
+
+    // Reels Overlay Layout
+    if (isReelsView) {
+      return `
+        <div class="post-card glass-card" id="post-${p.id}" data-id="${p.id}" style="scroll-snap-align: start;">
+          <div class="post-images">
+            ${imagesHtml}
+          </div>
+          
+          <!-- Floating side actions like TikTok/Reels -->
+          <div class="reels-side-actions">
+            <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)" style="flex-direction: column;">
+              <i data-lucide="heart" style="width:28px;height:28px;"></i>
+              <span style="font-size:12px;font-weight:600;margin-top:4px;" id="like-count-${p.id}">${p.likes || 0}</span>
+            </div>
+            <div class="action-btn" onclick="openComments(${p.id})" style="flex-direction: column;">
+              <i data-lucide="message-circle" style="width:28px;height:28px;"></i>
+              <span style="font-size:12px;font-weight:600;margin-top:4px;" id="comment-counter-badge-${p.id}">${p.comments_count || 0}</span>
+            </div>
+            <div class="action-btn" onclick="sharePost(${p.id})" style="flex-direction: column;">
+              <i data-lucide="send" style="width:28px;height:28px;"></i>
+            </div>
+            <div class="action-btn" onclick="toggleSave(${p.id}, this)" style="flex-direction: column;">
+              <i data-lucide="bookmark" style="width:28px;height:28px;${p.saved ? 'fill:#fff;' : ''}"></i>
+            </div>
+          </div>
+
+          <!-- Bottom description overlay -->
+          <div class="reels-overlay">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div class="post-avatar" style="width:30px;height:30px;"><i data-lucide="diamond" style="color:var(--accent);"></i></div>
+              <div style="font-weight:700;font-size:14px;">MMR MOBILE ✓</div>
+            </div>
+            <div class="product-title" style="font-size:15px;margin-bottom:4px;">${p.title}</div>
+            <div class="product-desc" style="font-size:12px;color:rgba(255,255,255,0.8);max-height:60px;overflow:hidden;text-overflow:ellipsis;">${p.description || ''}</div>
+            ${p.price ? `<div class="product-price" style="font-size:16px;color:var(--accent);margin-top:4px;">${p.price}</div>` : ''}
+            <div class="contact-admin-btn" style="margin:8px 0 0;padding:8px 12px;border-radius:10px;" onclick="contactAdmin('${p.title}')">
+              <i data-lucide="message-square" style="width:16px;height:16px;"></i>
+              <span style="font-size:12px;">Sotib olish</span>
+            </div>
           </div>
         </div>
       `;
@@ -682,8 +841,10 @@ function renderFeed() {
   
   updateIcons();
 
+  // Video va Postlarni kuzatishni boshlaymiz
   setTimeout(() => {
     document.querySelectorAll('.post-card').forEach(card => viewObserver.observe(card));
+    document.querySelectorAll('.lazy-video').forEach(video => videoObserver.observe(video));
   }, 300);
 }
 
@@ -708,6 +869,14 @@ function filterPosts(type, el) {
   document.querySelectorAll('#categoryFilters .admin-tab').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
   renderFeed();
+}
+
+function toggleVideoPlayback(video) {
+  if (video.paused) {
+    video.play().catch(e => {});
+  } else {
+    video.pause();
+  }
 }
 
 // LIKES
@@ -744,8 +913,10 @@ function toggleSave(id, btn) {
   
   if (p.saved) {
     btn.classList.add('saved');
+    btn.querySelector('.lucide').setAttribute('fill', '#fff');
   } else {
     btn.classList.remove('saved');
+    btn.querySelector('.lucide').removeAttribute('fill');
   }
 
   if(db) {
@@ -801,7 +972,9 @@ async function openComments(id) {
   } else {
     list.innerHTML = coms.map(c => `
       <div class="comment-item">
-        <div class="comment-avatar" style="display:flex;align-items:center;justify-content:center;"><i data-lucide="user" style="width:16px;color:var(--text-tertiary);"></i></div>
+        <div class="comment-avatar">
+          ${c.photo_url ? `<img src="${c.photo_url}" alt="" />` : `<i data-lucide="user" style="width:16px;color:var(--text-tertiary);"></i>`}
+        </div>
         <div>
           <div class="comment-author">${c.first_name || 'Foydalanuvchi'}</div>
           <div class="comment-text">${c.content}</div>
@@ -810,6 +983,24 @@ async function openComments(id) {
       </div>
     `).join('');
   }
+  
+  // Tavsiya etilgan tegishli postlar ro'yxati (Related posts under comments like Instagram)
+  const relatedPosts = postsData.filter(p => p.id !== id).slice(0, 3);
+  if (relatedPosts.length > 0) {
+    list.innerHTML += `
+      <div style="border-top:1px solid var(--border-glass);margin-top:20px;padding-top:16px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text-secondary);">Sizga yoqishi mumkin:</div>
+        <div style="display:grid;grid-template-columns: repeat(3, 1fr);gap:8px;">
+          ${relatedPosts.map(p => `
+            <div style="aspect-ratio:1;border-radius:12px;overflow:hidden;background:#000;" onclick="closeComments(); switchScreen('feed'); setTimeout(()=>{document.getElementById('post-${p.id}')?.scrollIntoView({behavior:'smooth'})}, 300);">
+              <img src="${p.images[0]}" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   updateIcons();
 }
 function closeComments() { document.getElementById('commentsSheet').classList.remove('open'); openPostId = null; }
@@ -824,6 +1015,7 @@ async function submitComment() {
     post_id: openPostId, 
     content: text, 
     first_name: tgUser?.first_name || 'Mehmon', 
+    photo_url: tgUser?.photo_url || '',
     created_at: new Date().toISOString() 
   };
   
@@ -833,7 +1025,6 @@ async function submitComment() {
   const p = postsData.find(x => x.id === openPostId);
   if(p) {
     p.comments_count = (p.comments_count || 0) + 1;
-    // UI dagi post izohlar sonini real vaqtda oshirish
     const countEl = document.getElementById(`comment-counter-badge-${openPostId}`);
     if (countEl) countEl.textContent = p.comments_count;
   }
@@ -846,7 +1037,8 @@ async function submitComment() {
       post_id: openPostId,
       content: text,
       first_name: tgUser?.first_name || 'Mehmon',
-      username: tgUser?.username || ''
+      username: tgUser?.username || '',
+      photo_url: tgUser?.photo_url || ''
     }); 
     await db.from('posts').update({comments_count: p.comments_count}).eq('id', openPostId); 
   }
@@ -897,8 +1089,70 @@ function renderNotifications() {
 }
 
 /* ═══════════════════════════════════════
-   PROFILE
+   PROFILE CUSTOMIZATION (Tahrirlash)
 ═══════════════════════════════════════ */
+function openProfileEdit() {
+  document.getElementById('profileEditSheet').classList.add('open');
+  document.getElementById('editFirstName').value = tgUser?.first_name || '';
+  document.getElementById('editLastName').value = tgUser?.last_name || '';
+  document.getElementById('editAvatarUrl').value = tgUser?.photo_url || '';
+  
+  const preview = document.getElementById('editAvatarPreview');
+  if (tgUser?.photo_url) {
+    preview.innerHTML = `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover;" />`;
+  } else {
+    preview.innerHTML = '👤';
+  }
+}
+
+function closeProfileEdit() {
+  document.getElementById('profileEditSheet').classList.remove('open');
+  editProfileAvatarBase64 = null;
+}
+
+function handleProfileAvatarUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    editProfileAvatarBase64 = ev.target.result;
+    document.getElementById('editAvatarPreview').innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;" />`;
+    showToast("Profil rasmi yuklandi!");
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfileChanges() {
+  const firstName = document.getElementById('editFirstName').value.trim();
+  const lastName = document.getElementById('editLastName').value.trim();
+  const avatarUrlInput = document.getElementById('editAvatarUrl').value.trim();
+  
+  const finalAvatar = editProfileAvatarBase64 || avatarUrlInput || tgUser?.photo_url || '';
+  
+  if (!firstName) {
+    showToast("Ism kiritilishi shart!", "error");
+    return;
+  }
+
+  tgUser.first_name = firstName;
+  tgUser.last_name = lastName;
+  tgUser.photo_url = finalAvatar;
+
+  if (db && tgUser.id !== 'test_user') {
+    try {
+      await db.from('users').update({
+        first_name: firstName,
+        last_name: lastName,
+        photo_url: finalAvatar
+      }).eq('telegram_id', String(tgUser.id));
+    } catch(e) { console.error("Profile update error:", e); }
+  }
+
+  showToast("Profil muvaffaqiyatli saqlandi!");
+  renderProfile();
+  closeProfileEdit();
+}
+
 function renderProfile() {
   const el = document.getElementById('profileContent');
   const name = tgUser ? `${tgUser.first_name||''} ${tgUser.last_name||''}`.trim() : 'Mehmon';
@@ -907,11 +1161,18 @@ function renderProfile() {
   
   el.innerHTML = `
     <div style="padding:30px 20px;text-align:center;">
-      <div style="width:80px;height:80px;border-radius:50%;background:var(--bg-glass);border:2px solid var(--border-glass-strong);margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
-        <i data-lucide="user" style="width:36px;height:36px;color:var(--text-tertiary);"></i>
+      <div style="position:relative; width:84px; height:84px; margin:0 auto 12px;">
+        <div style="width:80px;height:80px;border-radius:50%;background:var(--bg-glass);border:2px solid var(--border-glass-strong);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          ${tgUser?.photo_url ? `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover;" />` : `<i data-lucide="user" style="width:36px;height:36px;color:var(--text-tertiary);"></i>`}
+        </div>
+        <div onclick="openProfileEdit()" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-primary);cursor:pointer;">
+          <i data-lucide="edit-3" style="width:12px;height:12px;color:white;"></i>
+        </div>
       </div>
       <div style="font-size:20px;font-weight:700;">${name}</div>
       <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">ID: ${tgUser?.id || 'Yashirin'}</div>
+      
+      <button class="btn-secondary" style="margin-top:14px;padding:8px 16px;font-size:12px;" onclick="openProfileEdit()"><i data-lucide="settings" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Profilni tahrirlash</button>
     </div>
     
     <div style="padding:0 16px;">
@@ -951,12 +1212,23 @@ function loadAdminDashboard() {
   document.getElementById('statLikes').textContent = postsData.reduce((acc, p) => acc + (p.likes||0), 0);
 }
 
-// RASM YUKLASH VA URL
+function handleImageUpload(e) {
+  const files = e.target.files; if(!files.length) return;
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      uploadedImages.push(ev.target.result);
+      renderImagePreviewGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function renderImagePreviewGrid() {
   const grid = document.getElementById('imagePreviewGrid');
   grid.innerHTML = uploadedImages.map((src, idx) => `
     <div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);position:relative;">
-      <img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato+Link'" />
+      ${src.startsWith('data:video/') ? `<video src="${src}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato+Link'" />`}
       <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="removeUploadedImage(${idx})"><i data-lucide="x" style="width:12px;height:12px;"></i></div>
     </div>
   `).join('');
@@ -969,19 +1241,7 @@ function addImageFromUrl() {
   uploadedImages.push(url);
   document.getElementById('postImageUrl').value = '';
   renderImagePreviewGrid();
-  showToast("URL orqali rasm qo'shildi!");
-}
-
-function handleImageUpload(e) {
-  const files = e.target.files; if(!files.length) return;
-  Array.from(files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      uploadedImages.push(ev.target.result);
-      renderImagePreviewGrid();
-    };
-    reader.readAsDataURL(file);
-  });
+  showToast("Media qo'shildi!");
 }
 
 function removeUploadedImage(idx) {
@@ -1025,7 +1285,7 @@ function renderAdminPosts() {
       </div>
     </div>
   `).join('');
-  updateIcons();
+  lucide.createIcons();
 }
 
 async function deletePost(id) {
@@ -1054,7 +1314,7 @@ function addStoryFromUrl() {
 }
 
 async function createStory() {
-  const name = document.getElementById('storyName').value;
+  const name = document.getElementById('storyName').value.trim();
   if(!name || !storyUploadedImage) { showToast('Nomi va rasm kerak!'); return; }
   const s = { id: Date.now(), name, image: storyUploadedImage, created_at: new Date().toISOString() };
   if(db) { const { error } = await db.from('stories').insert(s); if(error) { showToast("Xato: " + error.message); return; } }
@@ -1082,7 +1342,9 @@ function renderAdminStoriesList() {
 function renderAdminUsers() {
   document.getElementById('adminUsersList').innerHTML = usersData.map(u => `
     <div style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border-glass);">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-glass);display:flex;align-items:center;justify-content:center;"><i data-lucide="user" style="color:var(--text-secondary);"></i></div>
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--bg-glass);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        ${u.photo_url ? `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;" />` : `<i data-lucide="user" style="color:var(--text-secondary);"></i>`}
+      </div>
       <div><div style="font-size:14px;font-weight:700;">${u.first_name || 'Ismsiz'}</div><div style="font-size:12px;color:var(--text-tertiary);">ID: ${u.telegram_id}</div></div>
     </div>
   `).join('') || '<div class="empty-state"><i data-lucide="users"></i><div class="empty-state-title">Obunachilar hozircha yo\'q</div></div>';
@@ -1091,8 +1353,8 @@ function renderAdminUsers() {
 
 // Notify
 async function sendNotification() {
-  const title = document.getElementById('notifTitle').value;
-  const message = document.getElementById('notifMessage').value;
+  const title = document.getElementById('notifTitle').value.trim();
+  const message = document.getElementById('notifMessage').value.trim();
   if(!title||!message) return showToast('Xato');
   const n = { id: Date.now(), title, message, sent_at: new Date().toISOString() };
   notifsData.unshift(n);
