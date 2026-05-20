@@ -53,13 +53,12 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     }
 
-    /* FIX: Header and Overlapping elements resolved */
     #appHeader {
       position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(30px);
       border-bottom: 1px solid var(--border-glass); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
     }
     .app-logo { font-size: 21px; font-weight: 900; letter-spacing: -0.7px; display: flex; align-items: center; gap: 7px; background: linear-gradient(to right, #ffffff, #a2a2a2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
     .header-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; color: var(--text-primary); position: relative; }
     .header-btn:active { transform: scale(0.9); background: var(--bg-glass-strong); }
     .notif-badge { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--accent-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: white; border: 2px solid var(--bg-primary); }
@@ -93,7 +92,7 @@
     .story-avatar-wrap::after { content:''; position:absolute; inset:-3px; border-radius:50%; border: 3px solid var(--bg-primary); pointer-events:none; }
 
     /* Post Card */
-    .post-card { margin: 0 16px 20px; border-radius: 24px; overflow: hidden; transition: transform 0.2s ease; }
+    .post-card { margin: 0 16px 20px; border-radius: 24px; overflow: hidden; transition: transform 0.2s ease; position: relative; }
     .post-header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; }
     .post-avatar { width: 38px; height: 38px; border-radius: 50%; overflow: hidden; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; }
     .post-avatar img { width: 100%; height: 100%; object-fit: cover; }
@@ -248,6 +247,50 @@
       transform: scale(0.9);
     }
 
+    /* Double Tap Pop Heart Animation CSS */
+    .heart-pop-container {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .heart-pop {
+      font-size: 80px;
+      color: var(--accent-pink);
+      opacity: 0;
+      transform: scale(0);
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4));
+    }
+    .heart-pop.animate {
+      animation: heartPopAnim 0.8s ease-out forwards;
+    }
+    @keyframes heartPopAnim {
+      0% { opacity: 0; transform: scale(0); }
+      15% { opacity: 0.9; transform: scale(1.2); }
+      30% { opacity: 0.9; transform: scale(0.9); }
+      80% { opacity: 0.9; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.5); }
+    }
+
+    /* Stories Progressive segmented bars */
+    .story-progress-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.35);
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+    }
+    .story-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #ffffff;
+      border-radius: 2px;
+    }
+
     .post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 8px; }
     .action-btn { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease; }
     .action-btn:active { transform: scale(0.85); }
@@ -352,6 +395,11 @@
   <div class="app-logo"><i data-lucide="diamond" style="color:var(--accent);"></i> MMR MOBILE</div>
   <div class="header-actions">
     <div class="header-btn" onclick="openSearch()"><i data-lucide="search"></i></div>
+    <!-- Cart Trigger Button in Header -->
+    <div class="header-btn" style="position:relative;" onclick="openCart()">
+      <i data-lucide="shopping-bag"></i>
+      <div class="notif-badge" id="cartBadge" style="display:none; background: var(--accent);">0</div>
+    </div>
     <div class="header-btn" style="position:relative;" onclick="switchScreen('notifications', document.getElementById('nav-notifications'))">
       <i data-lucide="bell"></i>
       <div class="notif-badge" id="topNotifBadge" style="display:none;">0</div>
@@ -456,10 +504,50 @@
   </div>
 </div>
 
-<!-- FULLSCREEN VIEWER -->
-<div id="fullscreenViewer">
-  <div style="position:absolute;top:20px;right:20px;width:40px;height:40px;background:rgba(0,0,0,0.5);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index: 3001;" onclick="closeFullscreen()"><i data-lucide="x"></i></div>
-  <img id="fullscreenImg" src="" onerror="this.src='https://via.placeholder.com/800?text=Rasm+Topilmadi'" />
+<!-- STORIES FULL-SCREEN SEGMENTED PROGRESS VIEWER -->
+<div id="storiesViewer" style="display:none; position:fixed; inset:0; z-index:4000; background:#000; flex-direction:column; justify-content:center;">
+  <!-- Segmented progress bars like Instagram -->
+  <div id="storyProgressContainer" style="position:absolute; top:20px; left:12px; right:12px; display:flex; gap:6px; z-index:4002;"></div>
+  
+  <!-- Info -->
+  <div style="position:absolute; top:36px; left:16px; right:16px; display:flex; align-items:center; gap:10px; z-index:4002;">
+    <div style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+      <img id="storyProfileImg" src="" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'" />
+    </div>
+    <div>
+      <div style="font-weight:700; font-size:14px; text-shadow:0 1px 4px rgba(0,0,0,0.8);" id="storyProfileName">MMR MOBILE ✓</div>
+      <div style="font-size:10px; color:rgba(255,255,255,0.6); text-shadow:0 1px 4px rgba(0,0,0,0.8);" id="storyTimeAgo">Hozir</div>
+    </div>
+    <div style="margin-left:auto; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="closeStories()">
+      <i data-lucide="x" style="color:white; width:16px;"></i>
+    </div>
+  </div>
+
+  <!-- Main interactive content -->
+  <div style="position:absolute; inset:0; z-index:4001; display:flex; align-items:center; justify-content:center;" onclick="handleStoryNavigation(event)">
+    <img id="storyViewerImg" style="width:100%; height:100%; object-fit:cover;" />
+  </div>
+</div>
+
+<!-- SHOPPING CART SHEET (E-Commerce Savat) -->
+<div id="cartSheet" class="bottom-sheet">
+  <div class="sheet-backdrop" onclick="closeCart()"></div>
+  <div class="sheet-content" style="max-height:85vh; padding-bottom:calc(20px + var(--safe-bottom));">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:12px auto;"></div>
+    <div style="text-align:center;font-weight:800;font-size:18px;padding-bottom:12px;border-bottom:1px solid var(--border-glass);">Sizning Savatingiz</div>
+    
+    <div id="cartItemsList" style="flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; min-height:220px;">
+      <!-- Cart items loaded dynamically -->
+    </div>
+    
+    <div style="padding:16px; border-top:1px solid var(--border-glass); background:rgba(255,255,255,0.02);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <span style="font-size:15px; color:var(--text-secondary); font-weight:600;">Umumiy narx:</span>
+        <span style="font-size:20px; font-weight:900; color:var(--accent);" id="cartTotalPrice">0 so'm</span>
+      </div>
+      <button class="btn-primary" onclick="submitOrder()"><i data-lucide="check-circle-2"></i> Buyurtma berish (Telegram)</button>
+    </div>
+  </div>
 </div>
 
 <!-- FAB (ADMIN ONLY) -->
@@ -594,6 +682,7 @@ let notifsData = [];
 
 let userLikes = [];
 let userSaves = [];
+let userRatings = {}; // Cache ratings
 let viewedPosts = new Set(); 
 
 let currentFilter = 'all';
@@ -604,6 +693,15 @@ let openPostId = null;
 let editProfileAvatarBase64 = null;
 let isGlobalMuted = true; // Global volume status: starts muted according to web autoplay policy
 
+// Shopping Cart state
+let shoppingCart = [];
+
+// Story Viewer state
+let activeStorySet = [];
+let activeStoryIndex = 0;
+let storyProgressTimer = null;
+let storyDuration = 5000; // 5 seconds per story
+
 const tg = window.Telegram?.WebApp;
 let tgUser = null;
 
@@ -611,6 +709,16 @@ if (tg) {
   tg.ready(); tg.expand();
   tg.setHeaderColor('#000000'); tg.setBackgroundColor('#000000');
   tgUser = tg.initDataUnsafe?.user || { id: 'test_user', first_name: 'Test', last_name: 'User', photo_url: '' };
+  
+  // Backbutton integration
+  if (tg.BackButton) {
+    tg.BackButton.onClick(() => {
+      if (currentScreen !== 'feed') {
+        switchScreen('feed', document.getElementById('nav-feed'));
+        tg.BackButton.hide();
+      }
+    });
+  }
 } else {
   tgUser = { id: 'browser_user', first_name: 'Browser', last_name: 'User', photo_url: '' };
 }
@@ -664,6 +772,14 @@ async function incrementViewCount(id) {
 ═══════════════════════════════════════ */
 async function init() {
   const loadingStart = Date.now();
+  
+  // Load Cart from LocalStorage
+  const savedCart = localStorage.getItem('mmr_mobile_cart');
+  if (savedCart) {
+    try { shoppingCart = JSON.parse(savedCart); } catch(e) {}
+    updateCartCount();
+  }
+
   if (CONFIG.SUPABASE_URL && CONFIG.SUPABASE_URL.startsWith('http')) {
     db = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
     await loadFromDB();
@@ -679,11 +795,9 @@ async function init() {
   // Foydalanuvchini ro'yxatga olish / yangilash
   if (db && tgUser && tgUser.id !== 'test_user') {
     try {
-      // Birinchi navbatda foydalanuvchining bazadagi ma'lumotlarini tekshiramiz
       const { data: dbUser } = await db.from('users').select('*').eq('telegram_id', String(tgUser.id)).maybeSingle();
       
       if (dbUser) {
-        // Agar foydalanuvchi rasmni tahrirlagan bo'lsa, o'shani profilga qo'llaymiz
         tgUser.photo_url = dbUser.photo_url || tgUser.photo_url || '';
         tgUser.first_name = dbUser.first_name || tgUser.first_name || '';
         tgUser.last_name = dbUser.last_name || tgUser.last_name || '';
@@ -719,12 +833,16 @@ async function loadFromDB() {
   if(!db) return;
   try {
     if (tgUser) {
-      const [{ data: lData }, { data: sData }] = await Promise.all([
+      const [{ data: lData }, { data: sData }, { data: rData }] = await Promise.all([
         db.from('likes').select('post_id').eq('user_id', String(tgUser.id)),
-        db.from('saves').select('post_id').eq('user_id', String(tgUser.id))
+        db.from('saves').select('post_id').eq('user_id', String(tgUser.id)),
+        db.from('ratings').select('post_id, rating_value').eq('user_id', String(tgUser.id))
       ]);
       if(lData) userLikes = lData.map(x => x.post_id);
       if(sData) userSaves = sData.map(x => x.post_id);
+      if(rData) {
+        rData.forEach(r => { userRatings[r.post_id] = r.rating_value; });
+      }
     }
 
     const { data: p } = await db.from('posts').select('*').order('created_at', {ascending: false});
@@ -732,7 +850,8 @@ async function loadFromDB() {
       postsData = p.map(row => ({
         ...row, 
         liked: userLikes.includes(row.id), 
-        saved: userSaves.includes(row.id)
+        saved: userSaves.includes(row.id),
+        userRating: userRatings[row.id] || 0
       }));
       postsData.sort((a,b) => (b.pinned===a.pinned) ? 0 : (b.pinned ? 1 : -1));
     }
@@ -785,6 +904,33 @@ function toggleGlobalMute(event, btn) {
 /* ═══════════════════════════════════════
    FEED & POSTS
 ═══════════════════════════════════════ */
+let lastTap = 0;
+function handleDoubleTapLike(e, postId) {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    // Pop heart animation inside clicked slide
+    const slide = e.currentTarget;
+    let container = slide.querySelector('.heart-pop-container');
+    if(!container) {
+      container = document.createElement('div');
+      container.className = 'heart-pop-container';
+      container.innerHTML = `<div class="heart-pop">❤️</div>`;
+      slide.appendChild(container);
+    }
+    const heart = container.querySelector('.heart-pop');
+    heart.classList.remove('animate');
+    void heart.offsetWidth; // Trigger reflow
+    heart.classList.add('animate');
+
+    const p = postsData.find(x => x.id === postId);
+    if (p && !p.liked) {
+      const btn = document.querySelector(`#post-${postId} .post-actions .action-btn`);
+      toggleLike(postId, btn);
+    }
+  }
+  lastTap = now;
+}
+
 function renderFeed() {
   const feed = document.getElementById('postsFeed');
   const filtered = postsData.filter(p => currentFilter === 'all' || p.type === currentFilter);
@@ -806,7 +952,6 @@ function renderFeed() {
     const imagesList = p.images && p.images.length ? p.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800'];
     
     const renderMediaElement = (url) => {
-      // Agar rasm o'rniga .mp4 video bo'lsa, uni Video Player sifatida ko'rsatamiz
       if (url.includes('.mp4') || url.startsWith('data:video/')) {
         return `
           <div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000;">
@@ -824,7 +969,7 @@ function renderFeed() {
       imagesHtml = `
         <div class="carousel-container" onscroll="updateCarouselIndicator(this, ${p.id})">
           ${imagesList.map((img) => `
-            <div class="carousel-slide">
+            <div class="carousel-slide" onclick="handleDoubleTapLike(event, ${p.id})">
               ${renderMediaElement(img)}
             </div>
           `).join('')}
@@ -837,12 +982,20 @@ function renderFeed() {
     } else {
       imagesHtml = `
         <div class="carousel-container">
-          <div class="carousel-slide">
+          <div class="carousel-slide" onclick="handleDoubleTapLike(event, ${p.id})">
              ${renderMediaElement(imagesList[0])}
           </div>
         </div>
       `;
     }
+
+    // Stars Baholash Section
+    const currentRating = p.userRating || 0;
+    const starsHtml = Array.from({ length: 5 }, (_, index) => {
+      const starNumber = index + 1;
+      const isFilled = starNumber <= currentRating;
+      return `<i data-lucide="star" style="width: 14px; height: 14px; cursor: pointer; ${isFilled ? 'fill: var(--accent-gold); color: var(--accent-gold);' : 'color: var(--text-tertiary);'}" onclick="rateProduct(event, ${p.id}, ${starNumber})"></i>`;
+    }).join('');
 
     // Reels Overlay Layout
     if (isReelsView) {
@@ -879,9 +1032,16 @@ function renderFeed() {
             <div class="product-title" style="font-size:15px;margin-bottom:4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${p.title}</div>
             <div class="product-desc" style="font-size:12px;color:rgba(255,255,255,0.9);max-height:60px;overflow:hidden;text-overflow:ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${p.description || ''}</div>
             ${p.price ? `<div class="product-price" style="font-size:16px;color:var(--accent);margin-top:4px; font-weight:800; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${p.price}</div>` : ''}
-            <div class="contact-admin-btn" style="margin:8px 0 0;padding:8px 12px;border-radius:10px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);" onclick="contactAdmin('${p.title}')">
-              <i data-lucide="message-square" style="width:16px;height:16px;color:white;"></i>
-              <span style="font-size:12px;color:white;font-weight:700;">Sotib olish</span>
+            
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <div class="contact-admin-btn" style="flex:1; margin:0; padding:8px 12px; border-radius:10px; background:var(--accent); border:none;" onclick="addToCart(${p.id})">
+                <i data-lucide="shopping-cart" style="width:16px;height:16px;color:white;"></i>
+                <span style="font-size:12px;color:white;font-weight:700;">Savatga qo'shish</span>
+              </div>
+              <div class="contact-admin-btn" style="flex:1; margin:0; padding:8px 12px; border-radius:10px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);" onclick="contactAdmin('${p.title}')">
+                <i data-lucide="message-square" style="width:16px;height:16px;color:white;"></i>
+                <span style="font-size:12px;color:white;font-weight:700;">Sotib olish</span>
+              </div>
             </div>
           </div>
         </div>
@@ -917,12 +1077,28 @@ function renderFeed() {
           <div class="views-count" id="views-count-${p.id}"><i data-lucide="eye" style="width:14px;"></i> ${p.views || 0} marta ko'rildi</div>
           <div><span class="product-title">${p.title}</span><span class="product-desc">${p.description || ''}</span></div>
           ${p.price ? `<div class="product-price">${p.price}</div>` : ''}
+          
+          <!-- Rating system display -->
+          <div style="display:flex; align-items:center; gap:6px; margin-top:8px;">
+            <div style="display:flex; gap:3px;" id="rating-stars-${p.id}">
+              ${starsHtml}
+            </div>
+            <span style="font-size:12px; color:var(--text-secondary); font-weight:500;">Baho bering</span>
+          </div>
+
           <div class="product-tags">${(p.tags||[]).map(t=>`<span class="product-tag">${t}</span>`).join('')}</div>
         </div>
-        <div class="contact-admin-btn" onclick="contactAdmin('${p.title}')">
-          <i data-lucide="message-square"></i>
-          <div class="text">Adminga murojaat qilish</div>
-          <i data-lucide="chevron-right" style="margin-left:auto;color:var(--text-tertiary);"></i>
+
+        <!-- Two Button eCommerce layout -->
+        <div style="display:flex; gap:10px; padding: 0 16px 16px;">
+          <div class="contact-admin-btn" style="flex:1; margin:0; background:var(--accent); justify-content:center;" onclick="addToCart(${p.id})">
+            <i data-lucide="shopping-cart" style="color:white;"></i>
+            <div class="text" style="color:white;">Savatga qo'shish</div>
+          </div>
+          <div class="contact-admin-btn" style="flex:1; margin:0; justify-content:center;" onclick="contactAdmin('${p.title}')">
+            <i data-lucide="message-square"></i>
+            <div class="text">Murojaat qilish</div>
+          </div>
         </div>
       </div>
     `;
@@ -969,6 +1145,28 @@ function toggleVideoPlayback(video) {
   } else {
     video.pause();
   }
+}
+
+// RATE PRODUCT
+async function rateProduct(event, postId, value) {
+  if (event) event.stopPropagation();
+  const p = postsData.find(x => x.id === postId);
+  if (!p) return;
+
+  p.userRating = value;
+  renderFeed();
+  showToast(`Siz bu mahsulotni ${value} ballga baholadingiz!`);
+
+  if (db && tgUser) {
+    try {
+      await db.from('ratings').upsert({
+        user_id: String(tgUser.id),
+        post_id: postId,
+        rating_value: value
+      }, { onConflict: 'user_id, post_id' });
+    } catch(e) { console.error("Rating error:", e); }
+  }
+  tg?.HapticFeedback?.impactOccurred('medium');
 }
 
 // LIKES
@@ -1043,6 +1241,252 @@ function contactAdmin(title) {
 }
 
 /* ═══════════════════════════════════════
+   SHOPPING CART SYSTEM (E-Commerce)
+═══════════════════════════════════════ */
+function openCart() {
+  document.getElementById('cartSheet').classList.add('open');
+  renderCartItems();
+}
+
+function closeCart() {
+  document.getElementById('cartSheet').classList.remove('open');
+}
+
+function addToCart(postId) {
+  const p = postsData.find(x => x.id === postId);
+  if (!p) return;
+
+  const existingItem = shoppingCart.find(item => item.id === postId);
+  if (existingItem) {
+    existingItem.qty += 1;
+  } else {
+    shoppingCart.push({
+      id: p.id,
+      title: p.title,
+      price: p.price,
+      image: p.images[0],
+      qty: 1
+    });
+  }
+
+  saveCart();
+  showToast("Savatga qo'shildi!");
+  tg?.HapticFeedback?.notificationOccurred('success');
+}
+
+function removeFromCart(postId) {
+  shoppingCart = shoppingCart.filter(item => item.id !== postId);
+  saveCart();
+  renderCartItems();
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+
+function changeQty(postId, delta) {
+  const item = shoppingCart.find(item => item.id === postId);
+  if (item) {
+    item.qty += delta;
+    if (item.qty <= 0) {
+      removeFromCart(postId);
+      return;
+    }
+  }
+  saveCart();
+  renderCartItems();
+}
+
+function saveCart() {
+  localStorage.setItem('mmr_mobile_cart', JSON.stringify(shoppingCart));
+  updateCartCount();
+}
+
+function updateCartCount() {
+  const totalQty = shoppingCart.reduce((sum, item) => sum + item.qty, 0);
+  const badge = document.getElementById('cartBadge');
+  if (totalQty > 0) {
+    badge.textContent = totalQty;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderCartItems() {
+  const container = document.getElementById('cartItemsList');
+  if (shoppingCart.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:40px 0;">
+        <i data-lucide="shopping-bag" style="width:48px;height:48px;opacity:0.3;"></i>
+        <div class="empty-state-title">Savat bo'sh</div>
+        <div style="font-size:12px;">Mahsulotlarni qo'shgach bu yerda chiqadi</div>
+      </div>
+    `;
+    document.getElementById('cartTotalPrice').textContent = "0 so'm";
+    updateIcons();
+    return;
+  }
+
+  container.innerHTML = shoppingCart.map(item => `
+    <div style="display:flex; gap:12px; padding:12px; background:var(--bg-glass); border:1px solid var(--border-glass); border-radius:16px; align-items:center;">
+      <div style="width:50px; height:50px; border-radius:10px; overflow:hidden; background:#000;">
+        <img src="${item.image}" style="width:100%; height:100%; object-fit:cover;" />
+      </div>
+      <div style="flex:1; min-width:0;">
+        <div style="font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${item.title}</div>
+        <div style="font-size:13px; color:var(--accent); font-weight:800; margin-top:3px;">${item.price || "Narx so'rang"}</div>
+      </div>
+      <!-- Quantity selector -->
+      <div style="display:flex; align-items:center; gap:10px; background:var(--bg-glass-strong); border-radius:20px; padding:4px 10px; border:1px solid var(--border-glass);">
+        <i data-lucide="minus" style="width:14px; height:14px; cursor:pointer;" onclick="changeQty(${item.id}, -1)"></i>
+        <span style="font-size:13px; font-weight:700; min-width:14px; text-align:center;">${item.qty}</span>
+        <i data-lucide="plus" style="width:14px; height:14px; cursor:pointer;" onclick="changeQty(${item.id}, 1)"></i>
+      </div>
+      <div style="color:var(--accent-pink); padding:6px; cursor:pointer;" onclick="removeFromCart(${item.id})">
+        <i data-lucide="trash-2" style="width:18px; height:18px;"></i>
+      </div>
+    </div>
+  `).join('');
+
+  // Calculate Total Price (attempts to parse clean numbers)
+  let totalSum = 0;
+  shoppingCart.forEach(item => {
+    if (item.price) {
+      const cleanNum = parseInt(item.price.replace(/[^0-9]/g, '')) || 0;
+      totalSum += cleanNum * item.qty;
+    }
+  });
+
+  const formattedSum = totalSum > 0 ? totalSum.toLocaleString('uz-UZ') + " so'm" : "Kelishilgan narxda";
+  document.getElementById('cartTotalPrice').textContent = formattedSum;
+  updateIcons();
+}
+
+function submitOrder() {
+  if (shoppingCart.length === 0) return;
+
+  const orderId = Date.now().toString().slice(-6);
+  const itemsText = shoppingCart.map(item => `📦 ${item.title} (${item.qty} dona)`).join('\n');
+  const totalPrice = document.getElementById('cartTotalPrice').textContent;
+
+  const orderData = {
+    action: "new_order",
+    order_id: orderId,
+    items: shoppingCart,
+    total_price: totalPrice,
+    user: tgUser
+  };
+
+  const formattedTelegramText = `🛒 Buyurtma #${orderId}\n\n${itemsText}\n\n💰 Umumiy narx: ${totalPrice}`;
+
+  // If using inside Telegram WebApp, send data back to the Telegram bot!
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify(orderData));
+    showToast("Buyurtma botga yuborildi!");
+  } else {
+    // Fallback: Opens a direct link to the Admin with order description
+    const url = `https://t.me/${CONFIG.ADMIN_USERNAME}?text=${encodeURIComponent(formattedTelegramText)}`;
+    window.open(url, '_blank');
+  }
+
+  // Clear Cart on successful order
+  shoppingCart = [];
+  saveCart();
+  closeCart();
+}
+
+/* ═══════════════════════════════════════
+   INSTAGRAM STORIES PRO MULTI-SEGMENT VIEWER
+═══════════════════════════════════════ */
+function renderStoriesViewer(index) {
+  activeStoryIndex = index;
+  const story = storiesData[activeStoryIndex];
+  if (!story) return;
+
+  activeStorySet = storiesData;
+
+  const viewer = document.getElementById('storiesViewer');
+  viewer.style.display = 'flex';
+
+  document.getElementById('storyViewerImg').src = story.image;
+  document.getElementById('storyProfileName').textContent = story.name || "MMR MOBILE";
+  document.getElementById('storyTimeAgo').textContent = formatTime(story.created_at);
+
+  // Profile img fallback
+  document.getElementById('storyProfileImg').src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100';
+
+  // Setup Progressive segment bars
+  const progressContainer = document.getElementById('storyProgressContainer');
+  progressContainer.innerHTML = activeStorySet.map((_, i) => `
+    <div class="story-progress-bar">
+      <div class="story-progress-fill" id="story-fill-${i}"></div>
+    </div>
+  `).join('');
+
+  // Mark previous segments as complete
+  for (let i = 0; i < activeStoryIndex; i++) {
+    const fill = document.getElementById(`story-fill-${i}`);
+    if (fill) fill.style.width = '100%';
+  }
+
+  startStoryTimer();
+}
+
+function startStoryTimer() {
+  if (storyProgressTimer) clearInterval(storyProgressTimer);
+
+  const fill = document.getElementById(`story-fill-${activeStoryIndex}`);
+  if (!fill) return;
+
+  let currentProgress = 0;
+  const interval = 50; // Update every 50ms
+  const steps = storyDuration / interval;
+
+  storyProgressTimer = setInterval(() => {
+    currentProgress += 100 / steps;
+    if (fill) fill.style.width = `${Math.min(currentProgress, 100)}%`;
+
+    if (currentProgress >= 100) {
+      clearInterval(storyProgressTimer);
+      storyNavigationNext();
+    }
+  }, interval);
+}
+
+function handleStoryNavigation(event) {
+  const rect = event.currentTarget.getBoundingClientRect();
+  const clickX = event.clientX - rect.left;
+  const screenWidth = rect.width;
+
+  // Click on the left 35% of the screen navigates back, right 65% forward
+  if (clickX < screenWidth * 0.35) {
+    storyNavigationPrev();
+  } else {
+    storyNavigationNext();
+  }
+}
+
+function storyNavigationNext() {
+  if (activeStoryIndex + 1 < activeStorySet.length) {
+    renderStoriesViewer(activeStoryIndex + 1);
+  } else {
+    closeStories();
+  }
+}
+
+function storyNavigationPrev() {
+  if (activeStoryIndex > 0) {
+    renderStoriesViewer(activeStoryIndex - 1);
+  } else {
+    // restart current
+    renderStoriesViewer(activeStoryIndex);
+  }
+}
+
+function closeStories() {
+  if (storyProgressTimer) clearInterval(storyProgressTimer);
+  document.getElementById('storiesViewer').style.display = 'none';
+}
+
+/* ═══════════════════════════════════════
    COMMENTS (Realtime & Related Feed)
 ═══════════════════════════════════════ */
 async function openComments(id) {
@@ -1058,6 +1502,16 @@ async function openComments(id) {
   }
   
   document.getElementById('commentCount').textContent = `(${coms.length})`;
+
+  // Comment avatar dynamic indicator
+  const commentAvatar = document.getElementById('commentUserAvatar');
+  if (commentAvatar) {
+    if (tgUser?.photo_url) {
+      commentAvatar.innerHTML = `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+    } else {
+      commentAvatar.innerHTML = '👤';
+    }
+  }
 
   if (coms.length === 0) {
     list.innerHTML = `<div class="empty-state" style="padding:40px 20px;"><i data-lucide="message-square"></i><div>Birinchi izohni yozing!</div></div>`;
@@ -1153,8 +1607,8 @@ function renderStories() {
         <span class="story-label">Qo'shish</span>
       </div>`;
   }
-  html += storiesData.map(s => `
-    <div class="story-item" onclick="openFullscreen('${s.image}')">
+  html += storiesData.map((s, idx) => `
+    <div class="story-item" onclick="renderStoriesViewer(${idx})">
       <div class="story-avatar-wrap"><div class="story-avatar-inner"><img src="${s.image}" onerror="this.src='https://via.placeholder.com/400?text=Xato'" /></div></div>
       <span class="story-label">${s.name}</span>
     </div>
@@ -1255,7 +1709,6 @@ function renderProfile() {
   
   const saved = postsData.filter(p=>p.saved);
   
-  // Conditionally render profile customization options ONLY for admins
   const adminCustomizationLayout = isAdmin ? `
     <div onclick="openProfileEdit()" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-primary);cursor:pointer;">
       <i data-lucide="edit-3" style="width:12px;height:12px;color:white;"></i>
@@ -1495,6 +1948,12 @@ function switchScreen(name, el) {
   
   document.getElementById('appHeader').style.display = name === 'feed' ? 'flex' : 'none';
   window.scrollTo(0,0);
+
+  if (name === 'feed') {
+    if (tg && tg.BackButton) tg.BackButton.hide();
+  } else {
+    if (tg && tg.BackButton) tg.BackButton.show();
+  }
 
   if(name === 'notifications') {
     document.getElementById('topNotifBadge').style.display = 'none';
