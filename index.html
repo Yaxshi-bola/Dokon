@@ -355,7 +355,7 @@
     #fabBtn { position: fixed; bottom: calc(var(--nav-height) + var(--safe-bottom) + 20px); right: 20px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); box-shadow: 0 8px 24px rgba(10,132,255,0.4); display: none; align-items: center; justify-content: center; cursor: pointer; z-index: 500; color: white; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
     #fabBtn:active { transform: scale(0.85); }
     #fabBtn.visible { display: flex; }
-    .spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,0.08); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 30px auto; }
+    .spinner { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,0.08); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px); z-index: 9999; background: rgba(20, 20, 25, 0.95); border: 1px solid var(--border-glass-strong); padding: 12px 24px; border-radius: 30px; font-size: 13px; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; align-items: center; gap: 8px; color: white; pointer-events: none; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -483,7 +483,7 @@
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
         <div id="editAvatarPreview" style="width:60px;height:60px;border-radius:50%;background:var(--bg-glass-strong);overflow:hidden;display:flex;align-items:center;justify-content:center;">👤</div>
         <div style="flex:1;">
-          <input type="file" accept="image/*" onchange="handleProfileAvatarUpload(event)" id="profileAvatarFileInput" style="display:none;" />
+          <input type="file" accept="image/*" onchange="handleProfileProfileAvatarUpload(event)" id="profileAvatarFileInput" style="display:none;" />
           <button class="btn-secondary" style="font-size:12px;padding:8px 14px;" onclick="document.getElementById('profileAvatarFileInput').click()"><i data-lucide="upload-cloud" style="width:14px;height:14px;display:inline;"></i> Rasm tanlash</button>
         </div>
       </div>
@@ -1451,12 +1451,12 @@ function startStoryTimer() {
   }, interval);
 }
 
+// Navigates active story segments forward/backward
 function handleStoryNavigation(event) {
   const rect = event.currentTarget.getBoundingClientRect();
   const clickX = event.clientX - rect.left;
   const screenWidth = rect.width;
 
-  // Click on the left 35% of the screen navigates back, right 65% forward
   if (clickX < screenWidth * 0.35) {
     storyNavigationPrev();
   } else {
@@ -1476,7 +1476,6 @@ function storyNavigationPrev() {
   if (activeStoryIndex > 0) {
     renderStoriesViewer(activeStoryIndex - 1);
   } else {
-    // restart current
     renderStoriesViewer(activeStoryIndex);
   }
 }
