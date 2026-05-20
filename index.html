@@ -53,12 +53,14 @@
       box-shadow: 0 10px 40px rgba(0,0,0,0.5);
     }
 
+    /* FIX: Header and Overlapping elements resolved */
     #appHeader {
       position: sticky; top: 0; z-index: 100; background: rgba(0,0,0,0.75); backdrop-filter: blur(30px);
       border-bottom: 1px solid var(--border-glass); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between;
     }
     .app-logo { font-size: 21px; font-weight: 900; letter-spacing: -0.7px; display: flex; align-items: center; gap: 7px; background: linear-gradient(to right, #ffffff, #a2a2a2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .header-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); color: var(--text-primary); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-btn { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-glass); border: 1px solid var(--border-glass); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; color: var(--text-primary); position: relative; }
     .header-btn:active { transform: scale(0.9); background: var(--bg-glass-strong); }
     .notif-badge { position: absolute; top: -3px; right: -3px; width: 18px; height: 18px; background: var(--accent-pink); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: white; border: 2px solid var(--bg-primary); }
 
@@ -122,6 +124,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      position: relative;
     }
     .carousel-slide img, .carousel-slide video { 
       width: 100%; 
@@ -155,43 +158,94 @@
       padding: 4px 10px; border-radius: 12px;
     }
 
-    /* Reels View (Vertical Fullscreen Mode) */
+    /* REELS VERTICAL MODE: Full-Screen Scroll Snapping */
+    .reels-mode {
+      scroll-snap-type: y mandatory;
+      overflow-y: auto;
+      height: calc(100vh - var(--nav-height) - var(--safe-bottom));
+      background: #000;
+    }
     .reels-mode .post-card {
       margin: 0;
       height: calc(100vh - var(--nav-height) - var(--safe-bottom));
       scroll-snap-align: start;
       border-radius: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       background: #000;
       position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
     .reels-mode .post-images {
       height: 100%;
       max-height: 100%;
       aspect-ratio: auto;
     }
-    .reels-mode .carousel-slide, .reels-mode .carousel-slide video {
+    .reels-mode .carousel-container, .reels-mode .carousel-slide {
+      height: 100%;
+    }
+    .reels-mode .carousel-slide img, .reels-mode .carousel-slide video {
       height: 100%;
       max-height: 100%;
-      object-fit: cover;
+      object-fit: cover; /* Reels fill the entire screen beautifully */
     }
+    
+    /* Reels Bottom Controls and Text Overlay */
     .reels-mode .reels-overlay {
       position: absolute;
       bottom: 20px;
       left: 16px;
-      right: 70px;
+      right: 80px;
       z-index: 20;
       pointer-events: none;
     }
     .reels-mode .reels-overlay * { pointer-events: auto; }
     .reels-mode .reels-side-actions {
       position: absolute;
-      right: 12px;
-      bottom: 40px;
+      right: 16px;
+      bottom: 60px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 24px;
       z-index: 20;
       align-items: center;
+    }
+    .reels-mode .reels-side-actions .action-btn {
+      flex-direction: column;
+      gap: 4px;
+      color: #fff;
+      font-size: 11px;
+    }
+    .reels-mode .reels-side-actions .action-btn .lucide {
+      width: 28px;
+      height: 28px;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+    }
+    .reels-mode .post-header, .reels-mode .post-actions, .reels-mode .product-info {
+      display: none !important; /* Hide classic post details on Reels layout */
+    }
+
+    /* Volume Button Styles */
+    .video-volume-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 30;
+      transition: transform 0.2s;
+    }
+    .video-volume-btn:active {
+      transform: scale(0.9);
     }
 
     .post-actions { display: flex; align-items: center; gap: 14px; padding: 12px 16px 8px; }
@@ -548,6 +602,7 @@ let uploadedImages = [];
 let storyUploadedImage = null;
 let openPostId = null;
 let editProfileAvatarBase64 = null;
+let isGlobalMuted = true; // Global volume status: starts muted according to web autoplay policy
 
 const tg = window.Telegram?.WebApp;
 let tgUser = null;
@@ -571,6 +626,7 @@ const videoObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
     const video = entry.target;
     if (entry.isIntersecting) {
+      video.muted = isGlobalMuted; // Match current global volume state
       video.play().catch(e => {});
     } else {
       video.pause();
@@ -701,6 +757,32 @@ async function loadFromDB() {
 }
 
 /* ═══════════════════════════════════════
+   GLOBAL VOLUME SYSTEM
+═══════════════════════════════════════ */
+function toggleGlobalMute(event, btn) {
+  if (event) event.stopPropagation();
+  isGlobalMuted = !isGlobalMuted;
+  
+  const allVideos = document.querySelectorAll('.lazy-video');
+  allVideos.forEach(v => {
+    v.muted = isGlobalMuted;
+  });
+
+  const allVolumeButtons = document.querySelectorAll('.video-volume-btn');
+  allVolumeButtons.forEach(b => {
+    if (isGlobalMuted) {
+      b.innerHTML = `<i data-lucide="volume-x" style="width:18px;height:18px;color:white;"></i>`;
+    } else {
+      b.innerHTML = `<i data-lucide="volume-2" style="width:18px;height:18px;color:white;"></i>`;
+    }
+  });
+
+  showToast(isGlobalMuted ? "Ovoz o'chirildi" : "Ovoz yoqildi");
+  updateIcons();
+  tg?.HapticFeedback?.impactOccurred('light');
+}
+
+/* ═══════════════════════════════════════
    FEED & POSTS
 ═══════════════════════════════════════ */
 function renderFeed() {
@@ -726,7 +808,14 @@ function renderFeed() {
     const renderMediaElement = (url) => {
       // Agar rasm o'rniga .mp4 video bo'lsa, uni Video Player sifatida ko'rsatamiz
       if (url.includes('.mp4') || url.startsWith('data:video/')) {
-        return `<video class="lazy-video" src="${url}" loop muted playsinline onclick="toggleVideoPlayback(this)" onerror="this.style.display='none'"></video>`;
+        return `
+          <div style="position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#000;">
+            <video class="lazy-video" src="${url}" loop playsinline onclick="toggleVideoPlayback(this)" style="width:100%; height:100%; object-fit:contain;"></video>
+            <div class="video-volume-btn" onclick="toggleGlobalMute(event, this)">
+              <i data-lucide="${isGlobalMuted ? 'volume-x' : 'volume-2'}" style="width:18px;height:18px;color:white;"></i>
+            </div>
+          </div>
+        `;
       }
       return `<img src="${url}" onclick="openFullscreen(this.src)" onerror="this.src='https://via.placeholder.com/400?text=Rasm+Yuklanmadi'" />`;
     };
@@ -765,19 +854,19 @@ function renderFeed() {
           
           <!-- Floating side actions like TikTok/Reels -->
           <div class="reels-side-actions">
-            <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)" style="flex-direction: column;">
+            <div class="action-btn ${p.liked ? 'liked' : ''}" onclick="toggleLike(${p.id}, this)">
               <i data-lucide="heart" style="width:28px;height:28px;"></i>
-              <span style="font-size:12px;font-weight:600;margin-top:4px;" id="like-count-${p.id}">${p.likes || 0}</span>
+              <span style="font-weight:600;" id="like-count-${p.id}">${p.likes || 0}</span>
             </div>
-            <div class="action-btn" onclick="openComments(${p.id})" style="flex-direction: column;">
+            <div class="action-btn" onclick="openComments(${p.id})">
               <i data-lucide="message-circle" style="width:28px;height:28px;"></i>
-              <span style="font-size:12px;font-weight:600;margin-top:4px;" id="comment-counter-badge-${p.id}">${p.comments_count || 0}</span>
+              <span style="font-weight:600;" id="comment-counter-badge-${p.id}">${p.comments_count || 0}</span>
             </div>
-            <div class="action-btn" onclick="sharePost(${p.id})" style="flex-direction: column;">
+            <div class="action-btn" onclick="sharePost(${p.id})">
               <i data-lucide="send" style="width:28px;height:28px;"></i>
             </div>
-            <div class="action-btn" onclick="toggleSave(${p.id}, this)" style="flex-direction: column;">
-              <i data-lucide="bookmark" style="width:28px;height:28px;${p.saved ? 'fill:#fff;' : ''}"></i>
+            <div class="action-btn ${p.saved ? 'saved' : ''}" onclick="toggleSave(${p.id}, this)">
+              <i data-lucide="bookmark" style="width:28px;height:28px;"></i>
             </div>
           </div>
 
@@ -785,14 +874,14 @@ function renderFeed() {
           <div class="reels-overlay">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
               <div class="post-avatar" style="width:30px;height:30px;"><i data-lucide="diamond" style="color:var(--accent);"></i></div>
-              <div style="font-weight:700;font-size:14px;">MMR MOBILE ✓</div>
+              <div style="font-weight:700;font-size:14px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">MMR MOBILE ✓</div>
             </div>
-            <div class="product-title" style="font-size:15px;margin-bottom:4px;">${p.title}</div>
-            <div class="product-desc" style="font-size:12px;color:rgba(255,255,255,0.8);max-height:60px;overflow:hidden;text-overflow:ellipsis;">${p.description || ''}</div>
-            ${p.price ? `<div class="product-price" style="font-size:16px;color:var(--accent);margin-top:4px;">${p.price}</div>` : ''}
-            <div class="contact-admin-btn" style="margin:8px 0 0;padding:8px 12px;border-radius:10px;" onclick="contactAdmin('${p.title}')">
-              <i data-lucide="message-square" style="width:16px;height:16px;"></i>
-              <span style="font-size:12px;">Sotib olish</span>
+            <div class="product-title" style="font-size:15px;margin-bottom:4px; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${p.title}</div>
+            <div class="product-desc" style="font-size:12px;color:rgba(255,255,255,0.9);max-height:60px;overflow:hidden;text-overflow:ellipsis; text-shadow: 0 1px 2px rgba(0,0,0,0.8);">${p.description || ''}</div>
+            ${p.price ? `<div class="product-price" style="font-size:16px;color:var(--accent);margin-top:4px; font-weight:800; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">${p.price}</div>` : ''}
+            <div class="contact-admin-btn" style="margin:8px 0 0;padding:8px 12px;border-radius:10px; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);" onclick="contactAdmin('${p.title}')">
+              <i data-lucide="message-square" style="width:16px;height:16px;color:white;"></i>
+              <span style="font-size:12px;color:white;font-weight:700;">Sotib olish</span>
             </div>
           </div>
         </div>
@@ -844,7 +933,10 @@ function renderFeed() {
   // Video va Postlarni kuzatishni boshlaymiz
   setTimeout(() => {
     document.querySelectorAll('.post-card').forEach(card => viewObserver.observe(card));
-    document.querySelectorAll('.lazy-video').forEach(video => videoObserver.observe(video));
+    document.querySelectorAll('.lazy-video').forEach(video => {
+      video.muted = isGlobalMuted; // Sync initial mute state
+      videoObserver.observe(video);
+    });
   }, 300);
 }
 
@@ -951,7 +1043,7 @@ function contactAdmin(title) {
 }
 
 /* ═══════════════════════════════════════
-   COMMENTS (Realtime & Exact Count Fixed)
+   COMMENTS (Realtime & Related Feed)
 ═══════════════════════════════════════ */
 async function openComments(id) {
   openPostId = id;
@@ -984,7 +1076,7 @@ async function openComments(id) {
     `).join('');
   }
   
-  // Tavsiya etilgan tegishli postlar ro'yxati (Related posts under comments like Instagram)
+  // Instagram style Related Feed inside comments sheet
   const relatedPosts = postsData.filter(p => p.id !== id).slice(0, 3);
   if (relatedPosts.length > 0) {
     list.innerHTML += `
@@ -1089,9 +1181,13 @@ function renderNotifications() {
 }
 
 /* ═══════════════════════════════════════
-   PROFILE CUSTOMIZATION (Tahrirlash)
+   PROFILE EDITING (Admin Only)
 ═══════════════════════════════════════ */
 function openProfileEdit() {
+  if (!isAdmin) {
+    showToast("Profilni faqat adminlar tahrirlay oladi!", "error");
+    return;
+  }
   document.getElementById('profileEditSheet').classList.add('open');
   document.getElementById('editFirstName').value = tgUser?.first_name || '';
   document.getElementById('editLastName').value = tgUser?.last_name || '';
@@ -1159,20 +1255,29 @@ function renderProfile() {
   
   const saved = postsData.filter(p=>p.saved);
   
+  // Conditionally render profile customization options ONLY for admins
+  const adminCustomizationLayout = isAdmin ? `
+    <div onclick="openProfileEdit()" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-primary);cursor:pointer;">
+      <i data-lucide="edit-3" style="width:12px;height:12px;color:white;"></i>
+    </div>
+  ` : '';
+
+  const adminEditButton = isAdmin ? `
+    <button class="btn-secondary" style="margin-top:14px;padding:8px 16px;font-size:12px;" onclick="openProfileEdit()"><i data-lucide="settings" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Profilni tahrirlash</button>
+  ` : '';
+  
   el.innerHTML = `
     <div style="padding:30px 20px;text-align:center;">
       <div style="position:relative; width:84px; height:84px; margin:0 auto 12px;">
         <div style="width:80px;height:80px;border-radius:50%;background:var(--bg-glass);border:2px solid var(--border-glass-strong);display:flex;align-items:center;justify-content:center;overflow:hidden;">
           ${tgUser?.photo_url ? `<img src="${tgUser.photo_url}" style="width:100%;height:100%;object-fit:cover;" />` : `<i data-lucide="user" style="width:36px;height:36px;color:var(--text-tertiary);"></i>`}
         </div>
-        <div onclick="openProfileEdit()" style="position:absolute;bottom:0;right:0;width:26px;height:26px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg-primary);cursor:pointer;">
-          <i data-lucide="edit-3" style="width:12px;height:12px;color:white;"></i>
-        </div>
+        ${adminCustomizationLayout}
       </div>
       <div style="font-size:20px;font-weight:700;">${name}</div>
       <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">ID: ${tgUser?.id || 'Yashirin'}</div>
       
-      <button class="btn-secondary" style="margin-top:14px;padding:8px 16px;font-size:12px;" onclick="openProfileEdit()"><i data-lucide="settings" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Profilni tahrirlash</button>
+      ${adminEditButton}
     </div>
     
     <div style="padding:0 16px;">
@@ -1228,7 +1333,7 @@ function renderImagePreviewGrid() {
   const grid = document.getElementById('imagePreviewGrid');
   grid.innerHTML = uploadedImages.map((src, idx) => `
     <div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border-glass);position:relative;">
-      ${src.startsWith('data:video/') ? `<video src="${src}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato+Link'" />`}
+      ${src.startsWith('data:video/') || src.includes('.mp4') ? `<video src="${src}" style="width:100%;height:100%;object-fit:cover;"></video>` : `<img src="${src}" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150?text=Xato+Link'" />`}
       <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.6);border-radius:50%;padding:4px;color:white;cursor:pointer;" onclick="removeUploadedImage(${idx})"><i data-lucide="x" style="width:12px;height:12px;"></i></div>
     </div>
   `).join('');
